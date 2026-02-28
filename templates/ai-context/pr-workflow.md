@@ -77,8 +77,8 @@ Categorize each comment:
 
 ### Resolution
 
-1. **Push fixes before resolving** — if auto-merge is enabled, resolving threads can trigger merge before your fix commit lands. Always: fix > push > verify > resolve.
-2. **Wait for re-review after pushing fixes** — Copilot reviews each commit separately. After pushing a fix commit, wait for Copilot to review that commit before merging.
+1. **Push fixes before resolving** — if auto-merge is enabled, resolving threads can trigger merge before your fix commit lands. Always: fix > push > resolve.
+2. **Resolve threads immediately after replying** — no need to wait for Copilot to re-review before resolving. Copilot typically reviews the new commit independently (though it may occasionally skip — see caveats below).
 3. **Never batch-resolve** without reading each comment — Copilot occasionally finds real bugs.
 4. **Present dismissals** to user for approval before posting replies — even when dismissal seems obvious based on existing patterns.
 5. **Confirm merge readiness** — after resolving all threads, verify review is complete for latest commits before merging. Dismissal approval does not equal merge approval.
@@ -115,7 +115,7 @@ Compare this to the current HEAD. If they match, the review is complete.
 
 Sometimes skips commits (small changes, rapid pushes). Manually trigger via GitHub UI: PR page > Reviewers (right sidebar) > gear icon > select "copilot-pull-request-reviewer". The `gh` CLI can't assign bot reviewers (`--add-reviewer` returns HTTP 422 for bot users) — manual trigger is UI-only.
 
-**Don't confuse "pending" with "skipped."** Copilot reviews take about 60 seconds (sometimes longer). If you check immediately after PR creation and get no reviews, wait and recheck before concluding it skipped. Only manually trigger after at least 2 minutes with no review.
+**Don't confuse "pending" with "skipped."** If you check immediately after PR creation and get no reviews, wait and recheck before concluding it skipped (reviews typically take about a minute). Only manually trigger after at least 2 minutes with no review.
 
 **Stacked PRs:** When a PR is created against a feature branch (not main) and the parent merges — causing GitHub to auto-update the base to main — Copilot review does NOT re-trigger. Close and recreate the PR to fix this:
 

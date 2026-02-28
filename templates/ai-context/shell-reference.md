@@ -125,3 +125,15 @@ Some Unix tools aren't available by default on Windows:
 | `awk` | Limited in Git Bash | Use dedicated tools or scripting |
 
 Prefer tool-native filtering (e.g., `gh api --jq '.field'`) over piping to `jq`.
+
+## gh API Path Gotcha (Git Bash / MSYS2)
+
+Git Bash (MSYS2) rewrites arguments starting with `/` as Windows paths. Omit the leading slash in `gh api` calls:
+
+```bash
+# Wrong — Git Bash mangles the path
+gh api /repos/OWNER/REPO/pulls
+
+# Correct
+gh api repos/OWNER/REPO/pulls
+```

@@ -46,6 +46,10 @@ When transcribing data from APIs, reference docs, or databases into project file
 
 These errors are especially common with large tables transcribed from search results or API responses, where items can be miscategorized or duplicated across query batches.
 
+## Verify Integrations Exist
+
+Before documenting tool integrations (MCP servers, APIs, packages), verify they actually exist. AI-generated documentation is prone to plausible-sounding but nonexistent tool names — search the catalog, registry, or package index before referencing them.
+
 ## External Data Sourcing
 
 When gathering data from external sources, prefer structured APIs over web scraping:

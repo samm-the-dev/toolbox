@@ -1,3 +1,9 @@
+---
+name: travel-planning
+description: Comprehensive travel planning covering flight logistics, local shopping discovery, and activity planning
+disable-model-invocation: true
+---
+
 # Travel Planning Skill
 
 ## Overview
@@ -144,7 +150,7 @@ Consider road trip when:
 - Pushy sales tactics or pressure to buy
 - Prices seem too cheap for claimed quality (e.g., "solid koa ukulele $150")
 - No information about maker/origin
-- Accepts only cash (avoiding taxes)
+- Accepts only cash with no receipts or clear pricing (harder to dispute charges or return items)
 
 #### Green Flags for Authentic Local Makers
 - Located in residential/local neighborhoods, not tourist zones

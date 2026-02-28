@@ -129,6 +129,8 @@ When a Python package needs to reference a project root or data directory, defin
 
 ```python
 # config.py
+from pathlib import Path
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
 # other modules

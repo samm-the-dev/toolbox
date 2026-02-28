@@ -27,7 +27,7 @@ A comprehensive Claude skill for travel planning covering flight logistics, auth
 
 ## Installation
 
-1. Copy the `SKILL.md` file to your Claude skills directory
+1. Copy the entire `travel-planning/` directory into your Claude skills directory (e.g., `~/.claude/skills/` or `.claude/skills/` in your project)
 2. The skill will automatically be available for Claude to use in your conversations
 
 ## Optional MCP Integrations

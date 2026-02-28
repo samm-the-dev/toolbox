@@ -51,13 +51,14 @@ The `gh` CLI should be available in PATH for PR management, review workflows, an
 
 ### Import Syntax
 
-Claude Code uses `@path/to/file` syntax for imports:
+Claude Code and SKILL.md files use `@path/to/file` syntax for imports:
 - Paths are relative to the file containing the import
 - Regular markdown links (`[text](url)`) are just text — not followed
 - Max import depth: 5 hops
+- Ignored inside fenced code blocks (no collision with `@scope/package` names)
 
 ### copilot-instructions.md Sync
 
-GitHub Copilot does not support `@import` or submodule references — it only reads `.github/copilot-instructions.md` from each repo. Projects copy the base template and append project-specific sections below a `---` separator. When the base template changes, propagate updates to the base portion (above the separator) in each project without overwriting project-specific content below it.
+GitHub Copilot does not support `@` imports or submodule references — it only reads `.github/copilot-instructions.md` from each repo. Projects copy the base template and append project-specific sections below a `---` separator. When the base template changes, propagate updates to the base portion (above the separator) in each project without overwriting project-specific content below it.
 
 Only add "Do Flag" items for behaviors Copilot misses — don't list things it catches naturally (e.g., injection, null access). Test by observing Copilot reviews before adding new rules.

@@ -25,7 +25,7 @@ Reusable project scaffolding and configuration templates.
 git submodule add https://github.com/ISmarsh/planet-smars .planet-smars
 ```
 
-In your project's CLAUDE.md, use the `@import` syntax:
+In your project's CLAUDE.md, use the `@` import syntax:
 
 ```markdown
 # My Project

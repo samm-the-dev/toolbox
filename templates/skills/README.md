@@ -77,4 +77,19 @@ Describe what the skill should do...
 | `allowed-tools` | Tools Claude can use without permission |
 | `context` | `fork` = run in isolated subagent |
 
-See [Claude Code docs](https://docs.anthropic.com/en/docs/claude-code) for full reference.
+### File Imports in Skills
+
+SKILL.md supports the same `@path/to/file` import syntax as CLAUDE.md. Use it to
+pull in supporting files bundled with the skill:
+
+```markdown
+## Reference
+
+@reference.md
+```
+
+Paths resolve relative to the SKILL.md file. Imports are recursive (max 5 hops)
+and ignored inside code blocks. Keep SKILL.md under 500 lines and move detailed
+reference material to separate files loaded via `@`.
+
+See [Claude Code docs](https://code.claude.com/docs/en/skills) for full reference.

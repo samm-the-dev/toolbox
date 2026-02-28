@@ -42,14 +42,14 @@ This approach gives you:
 git submodule add https://github.com/ISmarsh/planet-smars .planet-smars
 ```
 
-In your project's CLAUDE.md, use the `@import` syntax:
+In your project's CLAUDE.md, use the `@` import syntax:
 
 ```markdown
 # My Project — Claude Context
 
 ## Universal Guidance
 
-<!-- @import: Claude Code includes this file's content -->
+<!-- Claude Code resolves this @path import -->
 @.planet-smars/templates/ai-context/CLAUDE.md
 
 > *[View shared context](.planet-smars/templates/ai-context/CLAUDE.md) — git, testing, PR workflows*
@@ -110,7 +110,7 @@ Copy files to your project root and customize as needed.
 - **What to Flag** — Bugs, security issues, accessibility problems
 - **What NOT to Flag** — Style preferences, over-engineering suggestions
 
-**Distribution note:** GitHub Copilot reads `.github/copilot-instructions.md` from each repo — it does not support `@import` or submodule references. The base template must be copied into each project:
+**Distribution note:** GitHub Copilot reads `.github/copilot-instructions.md` from each repo — it does not support `@` imports or submodule references. The base template must be copied into each project:
 
 ```bash
 mkdir -p .github

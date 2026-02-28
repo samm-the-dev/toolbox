@@ -62,7 +62,7 @@ Start by finding what exists. Don't hardcode paths — discover them.
 
 ### Shared templates (promoted guidance)
 
-Look for the shared template directory. It's typically referenced via `@import` in `~/.claude/CLAUDE.md` or in a workspace `CLAUDE.md`. Follow the import chain to find the template root, then read:
+Look for the shared template directory. It's typically referenced via `@path/to/file` import in `~/.claude/CLAUDE.md` or in a workspace `CLAUDE.md`. Follow the import chain to find the template root, then read:
 - `AGENTS.md` — cross-tool guidance
 - `CLAUDE.md` — Claude Code-specific guidance
 - Any companion files (see Companion File Pattern below)
@@ -167,6 +167,6 @@ templates/ai-context/
 ### Cross-tool compatibility
 
 - AGENTS.md uses standard markdown — no tool-specific syntax
-- Claude Code follows `@import` references; other tools discover files via directory walks
+- Claude Code follows `@path/to/file` imports; other tools discover files via directory walks
 - Keep companion files self-contained (readable without AGENTS.md context)
-- Don't use `@import` in AGENTS.md itself — it inflates token cost on every request. Let Claude read companions on demand.
+- Don't use `@` imports in AGENTS.md itself — it inflates token cost on every request. Let Claude read companions on demand.

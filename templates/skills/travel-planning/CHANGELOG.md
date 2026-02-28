@@ -23,7 +23,6 @@ All notable changes to the Travel Planning Skill will be documented in this file
   - Line and crowd avoidance strategies
   - Duration estimation framework
   - Drop-in friendly identification
-- Known MCP integration documentation
 - Best practices and workflow integration guidance
 
 ### Based On

@@ -30,27 +30,6 @@ A comprehensive Claude skill for travel planning covering flight logistics, auth
 1. Copy the entire `travel-planning/` directory into your Claude skills directory (e.g., `~/.claude/skills/` or `.claude/skills/` in your project)
 2. The skill will automatically be available for Claude to use in your conversations
 
-## Optional MCP Integrations
-
-This skill works standalone but is enhanced by these MCPs when available:
-
-**Transportation:**
-- `expedia-mcp` - Itinerary details, rebooking
-- `flightstats-mcp` - Real-time flight data
-- `tsa-wait-times-mcp` - Security wait times
-- `google-maps-mcp` - Driving routes, traffic
-
-**Local Discovery:**
-- `google-places-mcp` - Business info, reviews
-- `yelp-mcp` - Local recommendations
-- `tripadvisor-mcp` - Attraction info
-
-**Activities:**
-- `ticketmaster-mcp` / `eventbrite-mcp` - Events
-- `opentable-mcp` - Restaurant reservations
-
-None of these are required - the skill provides fallback strategies using Claude's knowledge and user-provided information.
-
 ## Usage Examples
 
 ### Flight Analysis

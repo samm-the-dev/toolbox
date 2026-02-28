@@ -128,7 +128,7 @@ This is the Python equivalent of .NET's `FileStream(path, FileMode.Open, FileAcc
 When a Python package needs to reference a project root or data directory, define the path once in a central config module rather than computing it per-file:
 
 ```python
-# config.py
+# config.py — adjust parent depth to match your layout
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent

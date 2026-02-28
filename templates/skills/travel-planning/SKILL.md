@@ -9,28 +9,6 @@ disable-model-invocation: true
 ## Overview
 Comprehensive travel planning assistance covering flight/road trip logistics, authentic local shopping discovery, and activity planning. This skill helps optimize travel experiences by flagging potential issues, finding quality local products, and filtering activities based on user preferences.
 
-## Known MCP Integrations
-This skill works best with the following MCPs when available:
-
-### Flight & Transportation
-- `expedia-mcp` - Pull itinerary details, alternative flights, booking modifications
-- `american-airlines-mcp` / `united-mcp` / `delta-mcp` - Airline-specific rebooking, loyalty status, real-time updates
-- `flightstats-mcp` - Real-time flight delays, gate changes, aircraft info
-- `tsa-wait-times-mcp` - Current security wait times by airport and checkpoint
-- `google-maps-mcp` - Driving distances, route planning, traffic estimates
-
-### Local Discovery
-- `google-places-mcp` - Business information, reviews, photos, hours
-- `yelp-mcp` - Local business reviews and recommendations
-- `tripadvisor-mcp` - Tourist attraction info, reviews, tickets
-
-### Activity Planning
-- `ticketmaster-mcp` / `eventbrite-mcp` - Event schedules, ticket availability
-- `opentable-mcp` - Restaurant reservations, wait times
-
-**Fallback:** This skill functions without MCPs by working from user-provided information (screenshots, confirmations, manual research).
-
----
 
 ## Mode 1: Travel Logistics
 

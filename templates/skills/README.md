@@ -9,6 +9,7 @@ Claude Code skills (custom slash commands) for common workflows.
 | `pr-flow/` | Create PR with standard workflow (branch, commit, push, PR). Hands off to `/pr-check` for CI and reviews. | `/pr-flow` |
 | `pr-check/` | Watch CI checks and triage review comments on an existing PR | `/pr-check` |
 | `review-lessons/` | Audit memory and project files for insights to promote to shared templates | `/review-lessons` |
+| `travel-planning/` | Comprehensive travel planning covering flight logistics, local shopping discovery, and activity planning | `/travel-planning` |
 
 ## Installation
 

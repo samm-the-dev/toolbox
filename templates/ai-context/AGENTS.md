@@ -77,6 +77,7 @@ For code examples (hooks, components, utilities), see [testing.md](testing.md).
 - Consider security implications (XSS, injection, auth)
 - Maintain accessibility (WCAG 2.1 AA)
 - Use ASCII only in executed code (scripts, source files) — reserve non-ASCII (em dashes, smart quotes, arrows) for human-facing documentation
+- When splitting code, deduplicate shared logic in the same pass — don't leave identical blocks across modules for a follow-up
 
 ### Do Not
 

@@ -122,3 +122,17 @@ else:
 ```
 
 This is the Python equivalent of .NET's `FileStream(path, FileMode.Open, FileAccess.Read, FileShare.None)`.
+
+## Package Path Constants
+
+When a Python package needs to reference a project root or data directory, define the path once in a central config module rather than computing it per-file:
+
+```python
+# config.py
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+
+# other modules
+from .config import PROJECT_ROOT
+```
+
+This prevents drift when directory depth changes (e.g., after refactoring a flat script into a package).

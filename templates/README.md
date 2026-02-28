@@ -113,6 +113,7 @@ Minimal React starter with Tailwind CSS, TypeScript, and dark mode.
 - React 19 + Vite
 - TypeScript with path aliases (`@/`)
 - Tailwind CSS with CSS variable theming
+- [shadcn/ui](https://ui.shadcn.com/) ready (utility deps + `cn()` included)
 - Dark mode via `useTheme` hook
 - React Router v7
 - Vitest + Testing Library

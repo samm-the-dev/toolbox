@@ -118,14 +118,18 @@ modal.open(user);
 }
 ```
 
-## Adding shadcn/ui Components
+## Component Library: shadcn/ui
 
-This template is compatible with [shadcn/ui](https://ui.shadcn.com/). To add components:
+This template is pre-configured for [shadcn/ui](https://ui.shadcn.com/) — the recommended component library for all projects. The required utility dependencies (`clsx`, `tailwind-merge`, `class-variance-authority`, `lucide-react`) are already installed, and the `cn()` helper is at `src/lib/utils.ts`.
+
+### Setup
 
 ```bash
-npx shadcn@latest init
-npx shadcn@latest add button
+npx shadcn@latest init    # Creates components.json, accepts defaults
+npx shadcn@latest add button dialog card  # Add components as needed
 ```
+
+Components are installed to `src/components/ui/` and use CSS variable theming from `src/index.css`, so they automatically adapt to your project's color scheme.
 
 ## Deployment
 

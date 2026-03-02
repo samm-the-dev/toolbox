@@ -28,33 +28,126 @@ Browser (GitHub Pages)          Cloud Function              Google OAuth
   |<-- {access} -------------------|<-- new access token ------|
 ```
 
-## Client-Side Integration
+## Shared Code Structure
 
-### Config
+This pattern is implemented as shared code in planet-smars. Consuming projects pull it in via the submodule:
 
-Add a `TOKEN_EXCHANGE_URL` env var (e.g., `VITE_TOKEN_EXCHANGE_URL`). When set, the auth layer uses the code flow. When empty, it falls back to the implicit flow -- zero breaking change for dev environments without the function.
+```
+planet-smars/
+  cloud-functions/token-exchange/   # Cloud Function source (generic)
+    index.ts                        # HTTP handler (export: tokenExchange)
+    package.json                    # Dependencies + deploy script ref
+    tsconfig.json                   # Node 22 TypeScript config
+  lib/
+    google-drive-sync.ts            # createDriveSync<T>() factory
+    local-storage-sync.ts           # createLocalStorage<T>() factory
+  types/
+    google-identity.d.ts            # GIS ambient type declarations
+  scripts/
+    deploy-cloud-function.ps1       # Config-driven gcloud deploy
+  templates/ai-context/
+    gcp-oauth-token-exchange.md     # This doc
+```
 
-### Auth layer
+### What consuming projects provide
 
-Gate on `useCodeFlow = !!TOKEN_EXCHANGE_URL`:
+- **`cloud-functions/token-exchange/deploy.config.json`** -- per-project function name, entry point, and secret references
+- **App-specific config** -- env vars for client ID, file name, scope, token exchange URL
+- **App-specific sanitize function** -- passed to the factory for data validation/migration
 
-- **`initDriveAuth()`**: init `CodeClient` (code flow) or `TokenClient` (implicit)
-- **`requestAccessToken('')`**: try `silentRefresh()` (code flow) or GIS silent attempt (implicit)
-- **`requestAccessToken('consent')`**: open popup, exchange code via Cloud Function (code flow) or GIS consent popup (implicit)
-- **`silentRefresh()`**: restore cached access token from localStorage, or call Cloud Function with stored refresh token. Deduplicates concurrent calls.
-- **`disconnectDrive()`**: revoke token, clear localStorage
+### TypeScript setup
 
-### Token storage
+Include the submodule types directory in `tsconfig.app.json`:
 
-| Key | Storage | Lifetime |
-|-----|---------|----------|
-| Refresh token | localStorage | Until revoked or disconnected |
-| Access token | localStorage (cache) | ~1 hour, checked with 60s buffer |
-| Token expiry | localStorage | Paired with access token |
+```json
+{
+  "include": ["src", ".planet-smars/types"]
+}
+```
+
+Import library modules directly:
+
+```typescript
+import { createDriveSync } from '../../.planet-smars/lib/google-drive-sync';
+import { createLocalStorage } from '../../.planet-smars/lib/local-storage-sync';
+```
+
+## Client-Side Libraries
+
+### `createDriveSync<T>(config)` Factory
+
+Creates a closure-scoped Drive sync instance. All token state, GIS clients, and file ID cache are per-instance (not module-level), which simplifies testing.
+
+```typescript
+import { createDriveSync } from '../../.planet-smars/lib/google-drive-sync';
+
+const driveSync = createDriveSync<MyData>({
+  clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '',
+  fileName: 'my-app-data.json',
+  mimeType: 'application/json',
+  scope: 'https://www.googleapis.com/auth/drive.appdata',
+  tokenExchangeUrl: import.meta.env.VITE_TOKEN_EXCHANGE_URL ?? '',
+  appId: 'my-app',
+  storageKeyPrefix: 'myapp-drive',
+  logPrefix: '[MyApp]',
+  sanitize: sanitizeMyData,
+});
+
+export const {
+  isAuthenticated, getAuthLevel, initDriveAuth, silentRefresh,
+  requestAccessToken, disconnectDrive, loadFromDrive, saveToDrive,
+} = driveSync;
+```
+
+#### Config fields
+
+| Field | Purpose |
+|-------|---------|
+| `clientId` | Google OAuth client ID |
+| `fileName` | Name of the JSON file in Drive appDataFolder |
+| `mimeType` | MIME type for the file |
+| `scope` | OAuth scope (typically `drive.appdata`) |
+| `tokenExchangeUrl` | Cloud Function URL (empty = implicit flow fallback) |
+| `appId` | Sent as `X-App-Id` header for per-app logging |
+| `storageKeyPrefix` | Prefix for localStorage keys (e.g., `myapp-drive`) |
+| `logPrefix` | Console log prefix (e.g., `[MyApp]`) |
+| `sanitize` | App-specific data validation/migration function |
+
+#### Returned API
+
+| Method | Description |
+|--------|-------------|
+| `isAuthenticated()` | Check if access token is valid |
+| `getAuthLevel()` | Diagnostics: 0-3 persistence level |
+| `getAccessToken()` | Current access token (for debug helpers) |
+| `initDriveAuth()` | Initialize GIS client |
+| `silentRefresh()` | Restore/refresh token without user interaction |
+| `requestAccessToken(prompt)` | `''` = silent, `'consent'` = popup |
+| `disconnectDrive()` | Revoke token + clear storage |
+| `loadFromDrive()` | Load data from Drive appDataFolder |
+| `saveToDrive(data)` | Save data to Drive appDataFolder |
+
+### `createLocalStorage<T>(config)` Factory
+
+Creates localStorage persistence with version checking and sanitization:
+
+```typescript
+import { createLocalStorage } from '../../.planet-smars/lib/local-storage-sync';
+
+const localSync = createLocalStorage<MyData>({
+  storageKey: 'my-app-data',
+  logPrefix: '[MyApp]',
+  version: 1,
+  sanitize: sanitizeMyData,
+  createDefault: createDefaultData,
+});
+
+export const { saveToLocal, loadFromLocal, clearLocal } = localSync;
+```
 
 ### Auth level diagnostics
 
-Export a `getAuthLevel()` function for UI diagnostics. Returns 0-3 based on **actual state**, not just config:
+`getAuthLevel()` returns 0-3 based on **actual state**, not just config:
 
 | Level | Meaning | Condition |
 |-------|---------|-----------|
@@ -63,29 +156,45 @@ Export a `getAuthLevel()` function for UI diagnostics. Returns 0-3 based on **ac
 | 2 | Session sync | GIS available but no refresh token stored (implicit flow, or code flow pre-connect) |
 | 3 | Persistent sync | Code flow configured AND refresh token in localStorage |
 
-Level 3 requires a stored refresh token -- not just `TOKEN_EXCHANGE_URL` being set. This accurately reflects whether the user will survive a page refresh without re-authenticating.
+Level 3 requires a stored refresh token -- not just `tokenExchangeUrl` being set. This accurately reflects whether the user will survive a page refresh without re-authenticating.
+
+### Testing with factories
+
+The factory pattern eliminates `vi.resetModules()` / dynamic `import()` for testing different configs. Each test creates a fresh instance:
+
+```typescript
+import { createDriveSync } from '../../.planet-smars/lib/google-drive-sync';
+
+function createSync(overrides = {}) {
+  return createDriveSync<TestData>({
+    clientId: 'test-client-id',
+    fileName: 'test.json',
+    mimeType: 'application/json',
+    scope: 'https://www.googleapis.com/auth/drive.appdata',
+    tokenExchangeUrl: 'https://example.com/token-exchange',
+    appId: 'test',
+    storageKeyPrefix: 'test-drive',
+    logPrefix: '[Test]',
+    sanitize: (d) => d,
+    ...overrides,
+  });
+}
+
+it('uses implicit flow when tokenExchangeUrl is empty', () => {
+  const sync = createSync({ tokenExchangeUrl: '' });
+  // ... no module cache tricks needed
+});
+```
 
 ### Redirect URI
 
 For GIS popup-based code flow, use `'postmessage'` as the `redirect_uri` in the exchange request. This is the standard convention -- no redirect URI registration needed in GCP Console for popup mode.
 
-### Testing module-level state
-
-The auth module has module-level variables (`useCodeFlow`, `accessToken`, etc.) that are set on import. To test different configurations in the same test suite, use `vi.resetModules()` + dynamic `import()` to get a fresh module instance per test:
-
-```typescript
-async function importFresh() {
-  vi.resetModules();
-  vi.doMock('../config/drive', () => ({ ...mockConfig }));
-  return import('./google-drive');
-}
-```
-
-Each test can modify `mockConfig` before calling `importFresh()` to simulate different environments (code flow vs implicit, missing client ID, etc.).
-
 ## Cloud Function
 
-Single HTTP-triggered function with two actions:
+### Source
+
+The function source lives in `planet-smars/cloud-functions/token-exchange/`. It exports a single `tokenExchange` HTTP handler with two actions:
 
 ```
 POST /token-exchange
@@ -96,6 +205,16 @@ X-App-Id: my-app
 { "action": "refresh", "refresh_token": "..." }
 ```
 
+### CORS
+
+Origins are configured via the `ALLOWED_ORIGINS` env var (comma-separated). Defaults to `https://ismarsh.github.io`. Localhost is always allowed for dev.
+
+To add origins without changing code, update the env var and redeploy:
+
+```bash
+gcloud functions deploy my-function --update-env-vars ALLOWED_ORIGINS="https://ismarsh.github.io,https://example.com"
+```
+
 ### Security
 
 - **Client secret**: loaded from GCP Secret Manager at runtime, never exposed to the browser
@@ -103,15 +222,28 @@ X-App-Id: my-app
 - **Origin validation**: rejects requests from unlisted origins
 - **X-App-Id header**: logged for per-app usage tracking (not authenticated)
 
-### Adding a new app
+## GCP Project Strategy
 
-1. Add the app's origin to the CORS allowlist in the function
-2. Redeploy the function
-3. Set `TOKEN_EXCHANGE_URL` in the app's build env
+### One project per app (recommended)
 
-If the new app uses a different OAuth client, create additional secrets and pass the client ID/secret pair based on the `X-App-Id` header or a separate config mechanism.
+Each app that needs OAuth gets its own GCP project. This ensures:
 
-## GCP Setup
+- **Consent screen isolation**: users see only the scopes the specific app requests, with app-appropriate branding
+- **Scope isolation**: one app requesting `drive.appdata` doesn't show calendar scopes from another app
+- **Independent secret management**: each project's secrets are self-contained
+
+Each project deploys its own instance of the shared Cloud Function source. The function code is identical -- only the deploy config differs.
+
+Google's own guidance: consent is managed at the project level. Use separate projects for apps with distinct brands or different scope requirements.
+
+### When to share a project
+
+Multiple apps can share a single GCP project (and function deployment) when they:
+- Use the same OAuth scopes
+- Can share a consent screen (same branding)
+- Are comfortable with shared consent grants (granting one app implicitly trusts others in the project)
+
+## GCP Setup (Per Project)
 
 ### Prerequisites
 
@@ -132,8 +264,8 @@ gcloud services enable \
 ### 2. Create secrets
 
 ```bash
-echo -n "YOUR_CLIENT_ID" | gcloud secrets create ohm-client-id --data-file=-
-echo -n "YOUR_CLIENT_SECRET" | gcloud secrets create ohm-client-secret --data-file=-
+echo -n "YOUR_CLIENT_ID" | gcloud secrets create my-client-id --data-file=-
+echo -n "YOUR_CLIENT_SECRET" | gcloud secrets create my-client-secret --data-file=-
 ```
 
 ### 3. Grant secret access
@@ -142,7 +274,7 @@ echo -n "YOUR_CLIENT_SECRET" | gcloud secrets create ohm-client-secret --data-fi
 PROJECT_NUMBER=$(gcloud projects describe $(gcloud config get-value project) \
   --format='value(projectNumber)')
 
-for SECRET in ohm-client-id ohm-client-secret; do
+for SECRET in my-client-id my-client-secret; do
   gcloud secrets add-iam-policy-binding $SECRET \
     --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
     --role="roles/secretmanager.secretAccessor"
@@ -151,17 +283,19 @@ done
 
 ### 4. Deploy
 
-Each cloud function directory contains a `deploy.config.json` with project-specific values:
+Each consuming project has a `cloud-functions/token-exchange/deploy.config.json`:
 
 ```json
 {
-  "functionName": "ohm-token-exchange",
-  "entryPoint": "ohmTokenExchange",
-  "secrets": "GOOGLE_CLIENT_ID=ohm-client-id:latest,GOOGLE_CLIENT_SECRET=ohm-client-secret:latest"
+  "functionName": "my-app-token-exchange",
+  "entryPoint": "tokenExchange",
+  "secrets": "GOOGLE_CLIENT_ID=my-client-id:latest,GOOGLE_CLIENT_SECRET=my-client-secret:latest"
 }
 ```
 
-Deploy using the shared script (lives in `planet-smars/scripts/`):
+The `entryPoint` must be `tokenExchange` (matching the shared source export). The `functionName` is per-project and determines the deployed URL.
+
+Deploy using the shared script:
 
 ```bash
 cd cloud-functions/token-exchange
@@ -185,6 +319,7 @@ Lessons from first deployment (ohm project, March 2025):
 - **No CI deploy**: Cloud Function changes are infrequent and require `gcloud` auth. Manual deploy via `npm run deploy` is sufficient. Note this in the consuming project's CLAUDE.md.
 - **Vitest test leakage**: if the cloud function directory has its own `node_modules`, vitest may pick up tests from those dependencies. Add `'cloud-functions'` to the vitest `exclude` array.
 - **`gcloud` on Windows**: the default installer puts the CLI in `%LOCALAPPDATA%\Google\Cloud SDK\`. The `setup-path.sh` hook adds it to Claude's bash PATH. The deploy script uses PowerShell where gcloud is on the user PATH natively.
+- **Function renaming**: GCP does not support in-place renames. Deploy a new function with the new name, update `VITE_TOKEN_EXCHANGE_URL` in consuming apps, then delete the old function: `gcloud functions delete old-name --region us-central1 --gen2`.
 
 ## Free Tier Limits
 
@@ -198,7 +333,7 @@ Cloud Run functions gen2 free tier (us-central1, per billing account, monthly):
 | Cloud Monitoring metrics | Free for Cloud Run |
 | Cloud Logging | 50 GiB/month |
 
-A token exchange function uses ~2 requests per user session (initial exchange + occasional refresh). Even with multiple apps sharing the function, this is negligible relative to the free tier.
+A token exchange function uses ~2 requests per user session (initial exchange + occasional refresh). Even with multiple apps each deploying their own function, this is negligible relative to the free tier.
 
 **Free tier regions**: us-central1, us-east1, us-west1. Deploy in one of these to stay free.
 
@@ -236,190 +371,14 @@ Create a budget alert at the billing account level:
 - **Missing refresh token on re-grant**: Google may omit the refresh token on subsequent grants. Client preserves any existing refresh token -- does not overwrite with undefined.
 - **Concurrent refresh calls**: Deduplicated via a shared in-flight promise. Only one Cloud Function call at a time.
 - **Cloud Function unreachable**: `silentRefresh()` catches the error, returns null. App falls back to reconnect UI.
-- **No `TOKEN_EXCHANGE_URL`**: implicit flow, identical to pre-migration behavior. Zero breaking change.
-
-## Reusable Code Patterns
-
-### GIS type declarations
-
-TypeScript projects using Google Identity Services need ambient type declarations. Drop this into `src/types/google-identity.d.ts`:
-
-```typescript
-declare namespace google.accounts.oauth2 {
-  interface TokenClient {
-    requestAccessToken(overrides?: { prompt?: string }): void;
-    callback: (response: TokenResponse) => void;
-  }
-
-  interface TokenResponse {
-    access_token: string;
-    expires_in: number;
-    error?: string;
-    error_description?: string;
-  }
-
-  interface TokenClientConfig {
-    client_id: string;
-    scope: string;
-    callback: (response: TokenResponse) => void;
-    error_callback?: (error: { type: string; message: string }) => void;
-  }
-
-  function initTokenClient(config: TokenClientConfig): TokenClient;
-
-  // --- Authorization code flow (used with server-side token exchange) ---
-
-  interface CodeClient {
-    requestCode(): void;
-    callback: (response: CodeResponse) => void;
-  }
-
-  interface CodeResponse {
-    code: string;
-    scope: string;
-    error?: string;
-    error_description?: string;
-  }
-
-  interface CodeClientConfig {
-    client_id: string;
-    scope: string;
-    ux_mode: 'popup' | 'redirect';
-    redirect_uri?: string;
-    callback: (response: CodeResponse) => void;
-    error_callback?: (error: { type: string; message: string }) => void;
-  }
-
-  function initCodeClient(config: CodeClientConfig): CodeClient;
-
-  function revoke(token: string, callback?: () => void): void;
-  function hasGrantedAllScopes(response: TokenResponse, ...scopes: string[]): boolean;
-}
-```
-
-### Config module pattern
-
-Centralize Google API config in one file. Apps customize the env var prefix:
-
-```typescript
-// src/config/drive.ts (Vite example -- adjust import.meta.env for other bundlers)
-export const DRIVE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '';
-export const DRIVE_FILE_NAME = 'my-app-data.json';
-export const DRIVE_MIME_TYPE = 'application/json';
-export const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
-export const TOKEN_EXCHANGE_URL = import.meta.env.VITE_TOKEN_EXCHANGE_URL ?? '';
-```
-
-### CORS allowlist pattern
-
-The Cloud Function validates origins explicitly. Localhost is allowed for dev but production origins are an explicit allowlist:
-
-```typescript
-const ALLOWED_ORIGINS = ['https://myuser.github.io'];
-
-function getCorsOrigin(requestOrigin: string | undefined): string | null {
-  if (!requestOrigin) return null;
-  if (ALLOWED_ORIGINS.includes(requestOrigin)) return requestOrigin;
-  if (/^https?:\/\/localhost(:\d+)?$/.test(requestOrigin)) return requestOrigin;
-  return null;
-}
-```
-
-Apply in the handler: return the specific requesting origin (not `*`), set `Vary: Origin`, and reject requests with no valid origin after the preflight check.
-
-### Cloud Function template
-
-The function handles two actions (`exchange` and `refresh`) with shared error handling. Key patterns:
-
-- Secrets from env vars (injected via `--set-secrets` at deploy time)
-- `X-App-Id` header for per-app logging (not auth -- just tracking)
-- Return only the fields the client needs (don't proxy the full Google response)
-- TypeScript with `@google-cloud/functions-framework` types
-
-```typescript
-import type { HttpFunction } from '@google-cloud/functions-framework';
-
-const CLIENT_ID = process.env.GOOGLE_CLIENT_ID ?? '';
-const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET ?? '';
-
-export const myTokenExchange: HttpFunction = async (req, res) => {
-  const origin = getCorsOrigin(req.headers.origin);
-
-  // CORS headers on every response (including errors)
-  if (origin) {
-    res.set('Access-Control-Allow-Origin', origin);
-    res.set('Vary', 'Origin');
-  }
-  res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.set('Access-Control-Allow-Headers', 'Content-Type, X-App-Id');
-  res.set('Access-Control-Max-Age', '3600');
-
-  if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
-  if (req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return; }
-  if (!origin) { res.status(403).json({ error: 'Origin not allowed' }); return; }
-
-  const appId = req.headers['x-app-id'] ?? 'unknown';
-  const { action } = req.body;
-
-  // ... handle 'exchange' and 'refresh' actions
-  // POST to https://oauth2.googleapis.com/token with appropriate grant_type
-};
-```
-
-### Dual-flow auth switching
-
-Gate on a single boolean to support both flows in the same module:
-
-```typescript
-const useCodeFlow = !!TOKEN_EXCHANGE_URL;
-
-// Initialization
-if (useCodeFlow) {
-  codeClient = google.accounts.oauth2.initCodeClient({ ... });
-} else {
-  tokenClient = google.accounts.oauth2.initTokenClient({ ... });
-}
-
-// Token request
-if (useCodeFlow) {
-  // prompt='' -> silentRefresh(), prompt='consent' -> popup + exchange
-} else {
-  // prompt='' -> GIS silent attempt, prompt='consent' -> GIS popup
-}
-```
-
-### Silent refresh with deduplication
-
-Prevent concurrent refresh calls (e.g., multiple components mounting simultaneously):
-
-```typescript
-let refreshPromise: Promise<string | null> | null = null;
-
-export function silentRefresh(): Promise<string | null> {
-  if (refreshPromise) return refreshPromise;
-  refreshPromise = doSilentRefresh().finally(() => { refreshPromise = null; });
-  return refreshPromise;
-}
-```
-
-### Drive appDataFolder helpers
-
-`appDataFolder` is a hidden, app-specific storage space -- no OAuth scope for full Drive access needed. Key patterns:
-
-- **Find file**: `GET /drive/v3/files?spaces=appDataFolder&q=name='filename'`
-- **Read file**: `GET /drive/v3/files/{id}?alt=media`
-- **Update file**: `PATCH /upload/drive/v3/files/{id}?uploadType=media`
-- **Create file**: `POST /upload/drive/v3/files?uploadType=multipart` with `parents: ['appDataFolder']` in metadata
-- Cache the file ID after first lookup to avoid repeated list calls
-- On 404 during update (file deleted externally), clear cache and fall through to create
+- **No `tokenExchangeUrl`**: implicit flow, identical to pre-migration behavior. Zero breaking change.
 
 ## Reference Implementation
 
 First deployed in the [ohm](https://github.com/ISmarsh/ohm) project (PR #11). Key files:
 
-- `cloud-functions/token-exchange/index.ts` -- Cloud Function source
-- `cloud-functions/token-exchange/deploy.config.json` -- deploy parameters
-- `src/utils/google-drive.ts` -- client-side auth layer (dual-flow)
-- `src/utils/google-drive.test.ts` -- 19 tests covering both flows
+- `cloud-functions/token-exchange/deploy.config.json` -- per-project deploy parameters
+- `src/utils/google-drive.ts` -- thin wrapper using `createDriveSync<OhmBoard>()`
+- `src/utils/storage.ts` -- thin wrapper using `createLocalStorage<OhmBoard>()`
+- `src/utils/google-drive.test.ts` -- 19 tests covering both flows (factory-based, no module cache tricks)
 - `src/config/drive.ts` -- env var config
-- `src/types/google-identity.d.ts` -- GIS type declarations

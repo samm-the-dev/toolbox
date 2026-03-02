@@ -1,0 +1,17 @@
+{
+  "name": "token-exchange",
+  "version": "1.0.0",
+  "private": true,
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "deploy": "powershell -ExecutionPolicy Bypass -File ../../scripts/deploy-cloud-function.ps1"
+  },
+  "dependencies": {
+    "@google-cloud/functions-framework": "^3.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "@types/node": "^20.0.0"
+  }
+}

@@ -86,10 +86,10 @@ export function createDriveSync<T>(config: DriveSyncConfig<T>): DriveSync<T> {
     if (!clientId || typeof google === 'undefined' || !google.accounts?.oauth2) {
       return 1;
     }
-    if (!useCodeFlow || !localStorage.getItem(REFRESH_TOKEN_KEY)) {
-      return 2;
+    if (useCodeFlow) {
+      return localStorage.getItem(REFRESH_TOKEN_KEY) ? 3 : 1;
     }
-    return 3;
+    return accessToken ? 2 : 1;
   }
 
   function getAccessTokenValue(): string | null {

@@ -21,7 +21,8 @@ Thumbs.db
 # Logs
 *.log
 
-# Template testing artifacts
+# Lock files (root + templates)
+package-lock.json
 templates/*/package-lock.json
 google-cloud-auth/function/package-lock.json
 google-cloud-auth/function/.gcloudignore

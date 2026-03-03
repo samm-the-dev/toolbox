@@ -10,7 +10,7 @@
 
 ## New Project Setup
 
-When initializing a new project with planet-smars as a submodule, follow the [INIT.md checklist](../INIT.md).
+When initializing a new project with toolbox as a submodule, follow the [INIT.md checklist](../INIT.md).
 
 ## Git Practices
 

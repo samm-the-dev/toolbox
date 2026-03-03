@@ -34,13 +34,13 @@ Cross-tool AI context following the [AGENTS.md convention](https://github.com/an
 **Option 1: Git Submodule (Recommended)**
 
 ```bash
-git submodule add https://github.com/ISmarsh/planet-smars .planet-smars
+git submodule add https://github.com/samm-the-dev/toolbox .toolbox
 ```
 
 In your project's CLAUDE.md:
 
 ```markdown
-@.planet-smars/templates/ai-context/CLAUDE.md
+@.toolbox/templates/ai-context/CLAUDE.md
 ```
 
 **Option 2: Direct Copy**

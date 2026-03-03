@@ -1,4 +1,4 @@
-# planet-smars
+# toolbox
 
 Personal utility repo for submoduling into various projects.
 
@@ -22,7 +22,7 @@ Reusable project scaffolding and configuration templates.
 
 ```bash
 # Add to your project
-git submodule add https://github.com/ISmarsh/planet-smars .planet-smars
+git submodule add https://github.com/samm-the-dev/toolbox .toolbox
 ```
 
 In your project's CLAUDE.md, use the `@` import syntax:
@@ -30,7 +30,7 @@ In your project's CLAUDE.md, use the `@` import syntax:
 ```markdown
 # My Project
 
-@.planet-smars/templates/ai-context/CLAUDE.md
+@.toolbox/templates/ai-context/CLAUDE.md
 
 ## Project-Specific Context
 ...
@@ -43,7 +43,7 @@ actually reads imports; links are just text.
 
 ```bash
 # Copy what you need
-cp -r planet-smars/templates/react-vite my-new-app
+cp -r toolbox/templates/react-vite my-new-app
 ```
 
 ## Placeholders to Update

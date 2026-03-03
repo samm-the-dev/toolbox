@@ -22,7 +22,7 @@ cp -r templates/skills/pr-flow ~/.claude/skills/
 ```
 
 Skills in `~/.claude/skills/` are loaded for every project. Update manually when
-planet-smars changes (rare for stable skills).
+toolbox changes (rare for stable skills).
 
 ### Project Skills
 

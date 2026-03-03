@@ -1,4 +1,4 @@
-# planet-smars
+# toolbox
 
 A collection of project templates and configurations for bootstrapping new projects.
 

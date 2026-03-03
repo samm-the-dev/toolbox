@@ -30,10 +30,10 @@ Browser (GitHub Pages)          Cloud Function              Google OAuth
 
 ## Shared Code Structure
 
-This pattern is implemented as shared code in planet-smars. Consuming projects pull it in via the submodule:
+This pattern is implemented as shared code in toolbox. Consuming projects pull it in via the submodule:
 
 ```
-planet-smars/
+toolbox/
   google-cloud-auth/
     function/                       # Cloud Function source (generic)
       index.ts                      # HTTP handler (export: tokenExchange)
@@ -61,15 +61,15 @@ Include the submodule types directory in `tsconfig.app.json`:
 
 ```json
 {
-  "include": ["src", ".planet-smars/types"]
+  "include": ["src", ".toolbox/types"]
 }
 ```
 
 Import library modules directly:
 
 ```typescript
-import { createDriveSync } from '../../.planet-smars/lib/google-drive-sync';
-import { createLocalStorage } from '../../.planet-smars/lib/local-storage-sync';
+import { createDriveSync } from '../../.toolbox/lib/google-drive-sync';
+import { createLocalStorage } from '../../.toolbox/lib/local-storage-sync';
 ```
 
 ## Client-Side Libraries
@@ -79,7 +79,7 @@ import { createLocalStorage } from '../../.planet-smars/lib/local-storage-sync';
 Creates a closure-scoped Drive sync instance. All token state, GIS clients, and file ID cache are per-instance (not module-level), which simplifies testing.
 
 ```typescript
-import { createDriveSync } from '../../.planet-smars/lib/google-drive-sync';
+import { createDriveSync } from '../../.toolbox/lib/google-drive-sync';
 
 const driveSync = createDriveSync<MyData>({
   clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '',
@@ -132,7 +132,7 @@ export const {
 Creates localStorage persistence with version checking and sanitization:
 
 ```typescript
-import { createLocalStorage } from '../../.planet-smars/lib/local-storage-sync';
+import { createLocalStorage } from '../../.toolbox/lib/local-storage-sync';
 
 const localSync = createLocalStorage<MyData>({
   storageKey: 'my-app-data',
@@ -163,7 +163,7 @@ Level 3 requires a stored refresh token -- not just `tokenExchangeUrl` being set
 The factory pattern eliminates `vi.resetModules()` / dynamic `import()` for testing different configs. Each test creates a fresh instance:
 
 ```typescript
-import { createDriveSync } from '../../.planet-smars/lib/google-drive-sync';
+import { createDriveSync } from '../../.toolbox/lib/google-drive-sync';
 
 function createSync(overrides = {}) {
   return createDriveSync<TestData>({
@@ -194,7 +194,7 @@ For GIS popup-based code flow, use `'postmessage'` as the `redirect_uri` in the 
 
 ### Source
 
-The function source lives in `planet-smars/google-cloud-auth/function/`. It exports a single `tokenExchange` HTTP handler with two actions:
+The function source lives in `toolbox/google-cloud-auth/function/`. It exports a single `tokenExchange` HTTP handler with two actions:
 
 ```
 POST /token-exchange
@@ -299,7 +299,7 @@ The `entryPoint` must be `tokenExchange` (matching the shared source export). Th
 Deploy from the consuming project root:
 
 ```bash
-powershell -ExecutionPolicy Bypass -File .planet-smars/google-cloud-auth/deploy.ps1
+powershell -ExecutionPolicy Bypass -File .toolbox/google-cloud-auth/deploy.ps1
 ```
 
 The script auto-discovers the function source relative to its own location in the submodule, and reads `google-cloud-auth.config.json` from the current directory. It handles `npm install`, build, and `gcloud` deploy. Region defaults to us-central1, runtime to nodejs22 -- override by adding those fields to the config.
@@ -374,7 +374,7 @@ Create a budget alert at the billing account level:
 
 ## Reference Implementation
 
-First deployed in the [ohm](https://github.com/ISmarsh/ohm) project (PR #11). Key files:
+First deployed in the [ohm](https://github.com/samm-the-dev/ohm) project (PR #11). Key files:
 
 - `google-cloud-auth.config.json` -- per-project deploy parameters
 - `src/utils/google-drive.ts` -- thin wrapper using `createDriveSync<OhmBoard>()`

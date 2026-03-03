@@ -67,7 +67,7 @@ Look for the shared template directory. It's typically referenced via `@path/to/
 - `CLAUDE.md` — Claude Code-specific guidance
 - Any companion files (see Companion File Pattern below)
 
-**Important:** When promoting changes, write to the **source repo** of the shared templates, not a submodule copy. The source path is the one referenced in `~/.claude/CLAUDE.md`. Projects embed shared templates via git submodules — writing to the submodule copy (e.g., `.planet-smars/`) only creates uncommittable changes in the wrong repo.
+**Important:** When promoting changes, write to the **source repo** of the shared templates, not a submodule copy. The source path is the one referenced in `~/.claude/CLAUDE.md`. Projects embed shared templates via git submodules — writing to the submodule copy (e.g., `.toolbox/`) only creates uncommittable changes in the wrong repo.
 
 ### Project instructions
 

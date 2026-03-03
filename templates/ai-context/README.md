@@ -39,7 +39,7 @@ This approach gives you:
 ### As a Git Submodule (Recommended)
 
 ```bash
-git submodule add https://github.com/ISmarsh/planet-smars .planet-smars
+git submodule add https://github.com/samm-the-dev/toolbox .toolbox
 ```
 
 In your project's CLAUDE.md, use the `@` import syntax:
@@ -50,9 +50,9 @@ In your project's CLAUDE.md, use the `@` import syntax:
 ## Universal Guidance
 
 <!-- Claude Code resolves this @path import -->
-@.planet-smars/templates/ai-context/CLAUDE.md
+@.toolbox/templates/ai-context/CLAUDE.md
 
-> *[View shared context](.planet-smars/templates/ai-context/CLAUDE.md) — git, testing, PR workflows*
+> *[View shared context](.toolbox/templates/ai-context/CLAUDE.md) — git, testing, PR workflows*
 
 ---
 

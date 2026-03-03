@@ -7,7 +7,7 @@ Builds and deploys the token exchange function from the submodule source
 using google-cloud-auth.config.json from the consuming project root.
 Run this script from the consuming project root directory.
 
-See planet-smars/templates/ai-context/google-cloud-auth.md.
+See toolbox/templates/ai-context/google-cloud-auth.md.
 
 Config file fields (google-cloud-auth.config.json):
   functionName  (required) - GCP function name
@@ -19,7 +19,7 @@ Config file fields (google-cloud-auth.config.json):
 
 .EXAMPLE
 # From the consuming project root:
-powershell -ExecutionPolicy Bypass -File .planet-smars/google-cloud-auth/deploy.ps1
+powershell -ExecutionPolicy Bypass -File .toolbox/google-cloud-auth/deploy.ps1
 #>
 
 $ErrorActionPreference = 'Stop'

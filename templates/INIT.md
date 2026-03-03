@@ -1,14 +1,14 @@
 # New Project Setup Checklist
 
-Use this checklist when initializing a new project that uses planet-smars as a submodule.
+Use this checklist when initializing a new project that uses toolbox as a submodule.
 
 ## Prerequisites
 
 - [ ] Repository created on GitHub
-- [ ] Local clone with planet-smars submodule added
+- [ ] Local clone with toolbox submodule added
 
 ```bash
-git submodule add https://github.com/ISmarsh/planet-smars .planet-smars
+git submodule add https://github.com/samm-the-dev/toolbox .toolbox
 ```
 
 ## 1. CI Workflow
@@ -17,7 +17,7 @@ Copy the CI workflow to run lint, test, and build on PRs:
 
 ```bash
 mkdir -p .github/workflows
-cp .planet-smars/templates/github-workflows/ci.yml .github/workflows/
+cp .toolbox/templates/github-workflows/ci.yml .github/workflows/
 ```
 
 **Required npm scripts:** `lint`, `test`, `build`
@@ -29,7 +29,7 @@ See [github-workflows/README.md](github-workflows/README.md) for customization o
 For static sites deployed to GitHub Pages:
 
 ```bash
-cp .planet-smars/templates/github-workflows/deploy-gh-pages.yml .github/workflows/
+cp .toolbox/templates/github-workflows/deploy-gh-pages.yml .github/workflows/
 ```
 
 Then enable GitHub Pages with Actions as the build source:
@@ -45,7 +45,7 @@ If Pages is already enabled and just needs switching from branch to Actions, use
 Apply the shared ruleset template (includes PR requirements, branch protection, and Copilot auto-review):
 
 ```bash
-cd .planet-smars/templates/github-rulesets
+cd .toolbox/templates/github-rulesets
 gh api repos/OWNER/REPO/rulesets -X POST --input main.json
 ```
 
@@ -71,7 +71,7 @@ Copy the shared review instructions so Copilot knows what to flag and what to sk
 
 ```bash
 mkdir -p .github
-cp .planet-smars/templates/ai-context/copilot-instructions.md .github/copilot-instructions.md
+cp .toolbox/templates/ai-context/copilot-instructions.md .github/copilot-instructions.md
 ```
 
 Append project-specific rules below a `---` separator, same as the base template sync pattern.
@@ -81,7 +81,7 @@ Append project-specific rules below a `---` separator, same as the base template
 For projects with UI, add automated accessibility testing:
 
 ```bash
-cp .planet-smars/templates/a11y-audit/audit-a11y.mjs scripts/
+cp .toolbox/templates/a11y-audit/audit-a11y.mjs scripts/
 ```
 
 Add to package.json:
@@ -105,8 +105,8 @@ Copy hooks to your Claude Code config directory:
 
 ```bash
 mkdir -p ~/.claude/hooks
-cp .planet-smars/templates/hooks/*.sh ~/.claude/hooks/
-cp .planet-smars/templates/hooks/*.ps1 ~/.claude/hooks/   # Windows only
+cp .toolbox/templates/hooks/*.sh ~/.claude/hooks/
+cp .toolbox/templates/hooks/*.ps1 ~/.claude/hooks/   # Windows only
 chmod +x ~/.claude/hooks/*.sh
 ```
 
@@ -136,7 +136,7 @@ Copy debug/task configuration for consistent dev experience:
 
 ```bash
 mkdir -p .vscode
-cp .planet-smars/templates/react-vite/.vscode/* .vscode/ 2>/dev/null || true
+cp .toolbox/templates/react-vite/.vscode/* .vscode/ 2>/dev/null || true
 ```
 
 ## Verification

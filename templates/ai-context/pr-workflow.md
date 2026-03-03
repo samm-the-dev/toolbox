@@ -188,3 +188,12 @@ Before merging, run these manual checks alongside automated CI:
 - Reply to each comment explaining the action taken
 - Resolve threads after addressing
 - Present dismissals for approval before resolving
+
+### Local branch cleanup
+
+After merging, prune stale local branches whose remotes are gone:
+
+```bash
+git fetch --prune
+git branch -vv | grep ': gone]' | awk '{print $1}' | xargs git branch -D
+```

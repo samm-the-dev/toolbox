@@ -7,6 +7,7 @@ allowed-tools:
   - Bash(gh *)
   - Read
   - Grep
+  - Agent
 argument-hint: "[PR number]"
 ---
 
@@ -44,39 +45,43 @@ If checks fail, report which ones and offer to investigate. Read the failed chec
 gh run view <RUN_ID> --log-failed
 ```
 
-### Wait for Copilot Review (Progressive Backoff)
+### Wait for Copilot Review and Fetch Comments
 
-Use progressive backoff to wait for Copilot review. Start at 30s, increase by 30s each attempt, stop when the wait would exceed 150s (~7 min total).
+**Run this section as a background agent** (`Agent` tool with `run_in_background: true`, `subagent_type: "general-purpose"`). This frees the conversation so the user can chat while waiting. Pass the agent the PR number, owner, and repo.
+
+The background agent should:
+
+1. Resolve owner/repo and latest commit:
 
 ```bash
 OWNER_REPO=$(gh repo view --json owner,name -q '"\(.owner.login)/\(.name)"')
 OWNER=${OWNER_REPO%/*}
 REPO=${OWNER_REPO#*/}
 LATEST_COMMIT=$(gh pr view <PR_NUMBER> --json headRefOid -q .headRefOid)
+```
 
+2. Poll for Copilot review with progressive backoff (30s, 60s, 90s, 120s, 150s — ~7 min total):
+
+```bash
 WAIT=30
 while [ $WAIT -le 150 ]; do
   sleep $WAIT
   REVIEWED_COMMIT=$(gh api "repos/$OWNER/$REPO/pulls/<PR_NUMBER>/reviews" \
     --jq '[.[] | select(.user.login | contains("copilot"))] | last | .commit_id')
   if [ "$LATEST_COMMIT" = "$REVIEWED_COMMIT" ]; then
+    echo "COPILOT_REVIEWED=true"
     break
   fi
   WAIT=$((WAIT + 30))
 done
 ```
 
-If `LATEST_COMMIT` still doesn't match `REVIEWED_COMMIT` after all attempts, report Copilot review as unavailable and proceed with any existing comments.
+3. Once reviewed (or timeout), fetch all review comments and unresolved thread IDs:
 
-### Fetch Review Comments
-
-Fetch and display review comments using the built-in `/pr-comments` tool for formatted output:
-
+```bash
+gh api "repos/$OWNER/$REPO/pulls/<PR_NUMBER>/comments" \
+  --jq '.[] | {id: .id, path: .path, line: .line, body: .body, user: .user.login}'
 ```
-/pr-comments <PR_NUMBER>
-```
-
-Then fetch unresolved thread IDs (needed for triage and resolution):
 
 ```bash
 gh api graphql -f query='query {
@@ -96,7 +101,9 @@ gh api graphql -f query='query {
 }'
 ```
 
-Filter for `isResolved: false`. Use the `/pr-comments` output for context when triaging.
+4. Return a summary: Copilot review status, unresolved comments (body, path, line, thread ID, comment database ID).
+
+**When the background agent completes**, report results to the user and proceed to triage.
 
 ### Triage Comments
 

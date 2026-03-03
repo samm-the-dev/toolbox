@@ -14,6 +14,9 @@ Cross-tool AI assistant context following the [AGENTS.md convention](https://git
 | `data-practices.md` | Batch operations, auditing, external data | Companion (read on demand) |
 | `testing.md` | Testing code examples | Companion (read on demand) |
 | `checklists.md` | Security and accessibility checklists | Companion (read on demand) |
+| `github-pages.md` | Custom domain setup, deploy workflow, subdomain strategy | Companion (read on demand) |
+| `google-cloud-auth.md` | OAuth token exchange pattern, GCP setup, deployment | Companion (read on demand) |
+| `python-reference.md` | Windows Python patterns, encoding, file locking | Companion (read on demand) |
 
 ## Architecture
 
@@ -24,6 +27,9 @@ AGENTS.md          ← Core rules, loaded on every request (~150 lines)
 ├── data-practices.md
 ├── testing.md
 ├── checklists.md
+├── github-pages.md
+├── google-cloud-auth.md
+├── python-reference.md
     ↑
 CLAUDE.md          ← Imports AGENTS.md via @AGENTS.md, adds Claude-specific notes
 ```
@@ -97,6 +103,9 @@ Copy files to your project root and customize as needed.
 - **`data-practices.md`** — Disposable scripts, verify-iterate, auditing, external sourcing
 - **`testing.md`** — Code examples for hooks, components, utilities
 - **`checklists.md`** — Security and WCAG 2.1 AA accessibility checklists
+- **`github-pages.md`** — Custom domain setup checklist, deploy workflow reference, subdomain strategy
+- **`google-cloud-auth.md`** — OAuth token exchange pattern, GCP project setup, deployment gotchas
+- **`python-reference.md`** — Windows Python patterns, encoding, file locking
 
 ### CLAUDE.md (Claude-Specific)
 

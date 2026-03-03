@@ -207,12 +207,12 @@ X-App-Id: my-app
 
 ### CORS
 
-Origins are configured via the `ALLOWED_ORIGINS` env var (comma-separated). Must be explicitly set -- defaults to empty (fail closed). Localhost is always allowed for dev.
+Origins are configured via the `ALLOWED_ORIGINS` env var (comma-separated). Must be explicitly set -- defaults to empty (fail closed). Localhost is always allowed for dev. When adding a custom domain, update both `ALLOWED_ORIGINS` and the Google OAuth console -- see the [custom domain checklist](github-pages.md#5-oauth--cors-if-applicable).
 
 To add origins without changing code, update the env var and redeploy:
 
 ```bash
-gcloud functions deploy my-function --update-env-vars ALLOWED_ORIGINS="https://ismarsh.github.io,https://example.com"
+gcloud functions deploy my-function --update-env-vars "^;^ALLOWED_ORIGINS=https://my-user.github.io,https://app.example.com"
 ```
 
 ### Security
@@ -290,7 +290,7 @@ Each consuming project has a `google-cloud-auth.config.json` at the repo root:
   "functionName": "my-app-token-exchange",
   "entryPoint": "tokenExchange",
   "secrets": "GOOGLE_CLIENT_ID=my-client-id:latest,GOOGLE_CLIENT_SECRET=my-client-secret:latest",
-  "envVars": "ALLOWED_ORIGINS=https://ismarsh.github.io"
+  "envVars": "ALLOWED_ORIGINS=https://my-user.github.io"
 }
 ```
 
@@ -315,6 +315,7 @@ Lessons from first deployment (ohm project, March 2025):
 - **Gen2 deploys are slow**: 2-5 minutes is normal. The first deploy provisions a Cloud Build, builds a container, and pushes to Cloud Run. Don't assume it hung.
 - **Node.js runtime deprecation**: Google deprecates Node.js versions on the community EOL date. Node 20 EOL is April 2026. Use `nodejs22` to stay current. The deploy script defaults to nodejs22.
 - **PowerShell quoting**: the `--set-secrets` flag uses commas. PowerShell splits on unquoted commas. If deploying manually, quote the value: `--set-secrets="KEY1=val:latest,KEY2=val:latest"`. The shared deploy script handles this.
+- **`--set-env-vars` comma escaping**: gcloud uses commas to separate `KEY=VALUE` pairs. If a value contains commas (e.g., multiple origins in `ALLOWED_ORIGINS`), prefix the value with `^;^` to use `;` as the pair delimiter instead: `"envVars": "^;^ALLOWED_ORIGINS=https://app.example.com,https://fallback.example.com"`. See [gcloud topic escaping](https://cloud.google.com/sdk/gcloud/reference/topic/escaping).
 - **No CI deploy**: Cloud Function changes are infrequent and require `gcloud` auth. Manual deploy from the submodule source directory is sufficient. Note this in the consuming project's CLAUDE.md.
 - **Vitest test leakage**: if the cloud function directory has its own `node_modules`, vitest may pick up tests from those dependencies. Add `'google-cloud-auth'` to the vitest `exclude` array.
 - **`gcloud` on Windows**: the default installer puts the CLI in `%LOCALAPPDATA%\Google\Cloud SDK\`. The `setup-path.sh` hook adds it to Claude's bash PATH. The deploy script uses PowerShell where gcloud is on the user PATH natively.

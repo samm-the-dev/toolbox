@@ -5,8 +5,9 @@ Cross-platform reference for working on Windows with bash-like shells (Git Bash,
 ## Cross-Platform Paths
 
 - Use Unix-style paths: `/c/Users/name` not `C:\Users\name`
-- Forward slashes work universally: `cd /c/Dev/project`
+- Forward slashes work universally: `/c/Dev/project`
 - Avoid Windows path literals in shell commands
+- Avoid `cd` — the working directory is already set. Use absolute paths instead of changing directories.
 
 ## Escaping Pitfalls
 

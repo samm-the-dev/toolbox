@@ -126,6 +126,10 @@ gh pr create --base main --title "..." --body "..."
 
 To avoid the issue entirely, create PRs against main even for stacked work.
 
+### Background Agent Permissions
+
+Background agents (`run_in_background: true`) inherit allow rules from `settings.json`, but every command in the polling loop must be covered — including `sleep`. If any command prompts for approval, the background agent blocks silently (it can't surface prompts to the user). Ensure `Bash(sleep:*)` is in your allows alongside `Bash(gh:*)` etc.
+
 ### Repeat Comments Across Rounds
 
 Copilot reviews the full diff on each push, not just the delta. Previously dismissed comments will reappear as new threads if the code they reference hasn't changed. This is expected -- Copilot has no memory of prior dismissals.
@@ -188,6 +192,10 @@ Before merging, run these manual checks alongside automated CI:
 - Reply to each comment explaining the action taken
 - Resolve threads after addressing
 - Present dismissals for approval before resolving
+
+### lint-staged Stashes
+
+lint-staged creates backup stashes during each commit (visible in `git stash list`). These are safe to drop after the commit succeeds. Check for and clean them during PR wrap-up to avoid stale stash accumulation.
 
 ### Local branch cleanup
 

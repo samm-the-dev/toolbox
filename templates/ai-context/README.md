@@ -17,6 +17,7 @@ Cross-tool AI assistant context following the [AGENTS.md convention](https://git
 | `github-pages.md` | Custom domain setup, deploy workflow, subdomain strategy | Companion (read on demand) |
 | `google-cloud-auth.md` | OAuth token exchange pattern, GCP setup, deployment | Companion (read on demand) |
 | `python-reference.md` | Windows Python patterns, encoding, file locking | Companion (read on demand) |
+| `lsp-setup.md` | Claude Code LSP plugin setup, language server install | Companion (read on demand) |
 
 ## Architecture
 
@@ -30,6 +31,7 @@ AGENTS.md          ← Core rules, loaded on every request (~150 lines)
 ├── github-pages.md
 ├── google-cloud-auth.md
 ├── python-reference.md
+├── lsp-setup.md
     ↑
 CLAUDE.md          ← Imports AGENTS.md via @AGENTS.md, adds Claude-specific notes
 ```
@@ -106,6 +108,7 @@ Copy files to your project root and customize as needed.
 - **`github-pages.md`** — Custom domain setup checklist, deploy workflow reference, subdomain strategy
 - **`google-cloud-auth.md`** — OAuth token exchange pattern, GCP project setup, deployment gotchas
 - **`python-reference.md`** — Windows Python patterns, encoding, file locking
+- **`lsp-setup.md`** — Claude Code LSP plugin setup, language server binaries, troubleshooting
 
 ### CLAUDE.md (Claude-Specific)
 

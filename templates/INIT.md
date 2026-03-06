@@ -40,7 +40,16 @@ gh api repos/OWNER/REPO/pages --method POST -f build_type=workflow
 
 If Pages is already enabled and just needs switching from branch to Actions, use `PUT` instead of `POST`.
 
-## 3. Branch Protection + Copilot Auto-Review
+## 3. Vercel Preview Deploys (optional)
+
+The template includes `vercel.json` configured for preview-only deploys (production builds are skipped since GitHub Pages handles production). The cleanup workflow at `.github/workflows/cleanup-preview-deployments.yml` automatically removes stale GitHub deployment records when PRs close.
+
+To enable preview deploys:
+
+1. Import the repo in the [Vercel Dashboard](https://vercel.com/import)
+2. Optionally shorten the preview deployment retention period in project Settings > Security > Deployment Retention Policy (default is 6 months; dashboard-only setting)
+
+## 4. Branch Protection + Copilot Auto-Review
 
 Apply the shared ruleset template (includes PR requirements, branch protection, and Copilot auto-review):
 
@@ -55,7 +64,7 @@ Or configure manually via GitHub UI: Settings → Rules → Rulesets → New rul
 
 To opt out of Copilot review, remove the `copilot_code_review` and `copilot_code_review_analysis_tools` rules from the template before applying.
 
-## 4. Auto-Delete Branches
+## 5. Auto-Delete Branches
 
 Automatically delete branches after PR merge:
 
@@ -65,7 +74,7 @@ gh api repos/OWNER/REPO -X PATCH -f delete_branch_on_merge=true
 
 Or configure via GitHub UI: Settings → General → Pull Requests → "Automatically delete head branches"
 
-## 5. Copilot Review Instructions (optional)
+## 6. Copilot Review Instructions (optional)
 
 Copy the shared review instructions so Copilot knows what to flag and what to skip:
 
@@ -76,7 +85,7 @@ cp .toolbox/templates/ai-context/copilot-instructions.md .github/copilot-instruc
 
 Append project-specific rules below a `---` separator, same as the base template sync pattern.
 
-## 6. Accessibility Audit (optional)
+## 7. Accessibility Audit (optional)
 
 For projects with UI, add automated accessibility testing:
 
@@ -99,7 +108,7 @@ Add to package.json:
 
 Then add the a11y job to your CI workflow (see github-workflows/README.md).
 
-## 7. Claude Code Hooks (one-time machine setup)
+## 8. Claude Code Hooks (one-time machine setup)
 
 Copy hooks to your Claude Code config directory:
 
@@ -130,7 +139,7 @@ Adjust the path if Git is installed elsewhere (`where bash` to find it):
 
 This is a one-time setup per machine, not per project.
 
-## 8. VSCode Configuration
+## 9. VSCode Configuration
 
 Copy debug/task configuration for consistent dev experience:
 
@@ -148,3 +157,9 @@ After setup, verify:
 - [ ] `npm run build` passes
 - [ ] Push a test branch and confirm CI runs
 - [ ] (If Pages) Confirm deploy workflow triggers on main
+
+## 10. Claude Code LSP (one-time machine setup)
+
+Install language server binaries and plugins for semantic code navigation. See [ai-context/lsp-setup.md](ai-context/lsp-setup.md) for the full guide.
+
+This is a one-time setup per machine, not per project.

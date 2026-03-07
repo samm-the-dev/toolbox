@@ -17,7 +17,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 
 ### Hooks
 
-Claude Code hooks enforce AGENTS.md conventions automatically. See [hooks/README.md](../hooks/README.md) for the full reference.
+Claude Code hooks enforce AGENTS.md conventions automatically. See [hooks/README.md](../claude-hooks/README.md) for the full reference.
 
 **Key hooks:**
 - **guardrail.sh** (PreToolUse) — blocks force push, secrets staging, destructive git/rm commands

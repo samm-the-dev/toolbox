@@ -139,7 +139,7 @@ For each item:
 When promoting content, follow this structure for shared template directories:
 
 ```
-templates/ai-context/
+ai-context/
 ├── AGENTS.md              # Core rules — universal, ≤150 lines
 ├── CLAUDE.md              # Claude Code-specific config and conventions
 ├── <topic>.md             # Companion: detailed reference for a topic

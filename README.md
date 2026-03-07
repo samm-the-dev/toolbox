@@ -1,20 +1,17 @@
 # toolbox
 
-Personal utility repo for submoduling into various projects.
+Personal shared infrastructure repo, consumed as a `.toolbox` git submodule.
 
 ## Contents
 
-### `/templates`
-
-Reusable project scaffolding and configuration templates.
-
-| Template | Description |
-|----------|-------------|
-| `a11y-audit/` | Playwright + axe-core accessibility audit |
+| Directory | Description |
+|-----------|-------------|
 | `ai-context/` | Cross-tool AI context (AGENTS.md + CLAUDE.md, copilot-instructions) |
-| `github-workflows/` | GitHub Actions for CI and deployment |
-| `react-vite/` | React + Vite + Tailwind + TypeScript starter |
-| `skills/` | Claude Code skills (pr-flow, etc.) |
+| `claude-hooks/` | Claude Code hooks (guardrails, reminders, notifications) |
+| `claude-skills/` | Claude Code skills (pr-flow, review-lessons, etc.) |
+| `google-cloud-auth/` | Google Cloud auth utilities |
+| `lib/` | Shared runtime code (shared-schema, utilities) |
+| `types/` | Shared TypeScript type definitions |
 
 ## Usage
 
@@ -30,7 +27,7 @@ In your project's CLAUDE.md, use the `@` import syntax:
 ```markdown
 # My Project
 
-@.toolbox/templates/ai-context/CLAUDE.md
+@.toolbox/ai-context/CLAUDE.md
 
 ## Project-Specific Context
 ...
@@ -39,33 +36,23 @@ In your project's CLAUDE.md, use the `@` import syntax:
 **Note:** Use `@path/to/file` syntax, not markdown links. Claude Code
 actually reads imports; links are just text.
 
-### Direct Copy
+## Scaffolding New Projects
+
+Use the [react-vite-starter](https://github.com/samm-the-dev/react-vite-starter) GitHub template repo:
 
 ```bash
-# Copy what you need
-cp -r toolbox/templates/react-vite my-new-app
+gh repo create my-new-app --template samm-the-dev/react-vite-starter --clone --public
+cd my-new-app
+git submodule add https://github.com/samm-the-dev/toolbox .toolbox
 ```
 
-## Placeholders to Update
-
-When using the **react-vite** template, update these placeholders:
-
-| File | Placeholder | Purpose |
-|------|-------------|---------|
-| `package.json` | `"name": "my-app"` | Your app name |
-| `index.html` | `<title>My App</title>` | Browser tab title |
-| `src/components/Layout.tsx` | `GITHUB_URL` constant | Your GitHub repo link |
-| `src/components/Layout.tsx` | `"My App"` in header | Your app name |
-| `src/pages/CreditsPage.tsx` | License text | Your license |
-| `src/index.css` | CSS variables | Your color scheme |
-| `vite.config.ts` | `base` path | For GitHub Pages deployment |
+See [INIT.md](INIT.md) for the full setup checklist.
 
 ## Design Principles
 
-1. **No reinventing wheels** — Use existing libraries when they exist
-2. **Ready to use** — Templates work immediately after copying
-3. **Minimal** — Only essential dependencies included
-4. **Composable** — Projects extend rather than duplicate
+1. **No reinventing wheels** -- Use existing libraries when they exist
+2. **Composable** -- Projects extend rather than duplicate
+3. **Minimal** -- Only essential dependencies included
 
 ## License
 

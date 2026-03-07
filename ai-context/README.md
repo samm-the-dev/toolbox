@@ -58,9 +58,9 @@ In your project's CLAUDE.md, use the `@` import syntax:
 ## Universal Guidance
 
 <!-- Claude Code resolves this @path import -->
-@.toolbox/templates/ai-context/CLAUDE.md
+@.toolbox/ai-context/CLAUDE.md
 
-> *[View shared context](.toolbox/templates/ai-context/CLAUDE.md) — git, testing, PR workflows*
+> *[View shared context](.toolbox/ai-context/CLAUDE.md) — git, testing, PR workflows*
 
 ---
 
@@ -126,11 +126,11 @@ Copy files to your project root and customize as needed.
 
 ```bash
 mkdir -p .github
-cp templates/ai-context/copilot-instructions.md .github/copilot-instructions.md
+cp .toolbox/ai-context/copilot-instructions.md .github/copilot-instructions.md
 ```
 
 Projects append project-specific sections below a `---` separator (e.g., Tailwind theme rules, game terminology). When updating the base template, merge only the portion above the separator to avoid clobbering project-specific content.
 
 ## Related Templates
 
-- **[hooks/](../hooks/)** — Claude Code hooks that enforce AGENTS.md conventions (guardrails, reminders, notifications). See [hooks/README.md](../hooks/README.md).
+- **[claude-hooks/](../claude-hooks/)** — Claude Code hooks that enforce AGENTS.md conventions (guardrails, reminders, notifications). See [claude-hooks/README.md](../claude-hooks/README.md).

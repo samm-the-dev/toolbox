@@ -55,8 +55,8 @@ Copy hooks to your Claude Code config directory and register them:
 
 ```bash
 # Copy all hooks
-cp templates/hooks/*.sh ~/.claude/hooks/
-cp templates/hooks/*.ps1 ~/.claude/hooks/   # Windows only
+cp .toolbox/claude-hooks/*.sh ~/.claude/hooks/
+cp .toolbox/claude-hooks/*.ps1 ~/.claude/hooks/   # Windows only
 chmod +x ~/.claude/hooks/*.sh
 ```
 

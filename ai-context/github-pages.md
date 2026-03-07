@@ -4,7 +4,7 @@ Standard deployment pattern for Vite + React SPAs deployed to GitHub Pages via G
 
 ## Deploy Workflow
 
-All projects use the same workflow: build on push to `main`, deploy via `actions/deploy-pages`. See the [workflow template](../github-workflows/deploy-gh-pages.yml) and [INIT.md](../INIT.md#2-github-pages-deployment-if-applicable) for setup.
+All projects use the same workflow: build on push to `main`, deploy via `actions/deploy-pages`. See the [react-vite-starter config](https://github.com/samm-the-dev/react-vite-starter/tree/main/config/github-workflows/deploy-gh-pages.yml) for the workflow template and [INIT.md](../INIT.md#3-github-pages-deployment-if-applicable) for setup.
 
 ## Custom Domain Setup
 

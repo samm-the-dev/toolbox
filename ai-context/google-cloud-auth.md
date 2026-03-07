@@ -45,7 +45,7 @@ This pattern is implemented as shared code in toolbox. Consuming projects pull i
     local-storage-sync.ts           # createLocalStorage<T>() factory
   types/
     google-identity.d.ts            # GIS ambient type declarations
-  templates/ai-context/
+  ai-context/
     google-cloud-auth.md            # This doc
 ```
 

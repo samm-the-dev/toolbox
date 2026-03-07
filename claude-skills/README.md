@@ -18,7 +18,7 @@ Claude Code skills (custom slash commands) for common workflows.
 Install once, available in all projects. Best for general-purpose skills like `pr-flow`.
 
 ```bash
-cp -r templates/skills/pr-flow ~/.claude/skills/
+cp -r .toolbox/claude-skills/pr-flow ~/.claude/skills/
 ```
 
 Skills in `~/.claude/skills/` are loaded for every project. Update manually when
@@ -31,7 +31,7 @@ skill version-controlled with the project.
 
 ```bash
 mkdir -p .claude/skills
-cp -r templates/skills/pr-flow .claude/skills/
+cp -r .toolbox/claude-skills/pr-flow .claude/skills/
 ```
 
 **Note:** Claude Code doesn't support loading skills from arbitrary paths (like

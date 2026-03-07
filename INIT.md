@@ -1,35 +1,37 @@
 # New Project Setup Checklist
 
-Use this checklist when initializing a new project that uses toolbox as a submodule.
+Use this checklist when initializing a new project from the [react-vite-starter](https://github.com/samm-the-dev/react-vite-starter) template.
 
-## Prerequisites
-
-- [ ] Repository created on GitHub
-- [ ] Local clone with toolbox submodule added
+## 1. Scaffold and Connect
 
 ```bash
+# Create repo from template (clean commit history)
+gh repo create my-new-app --template samm-the-dev/react-vite-starter --clone --public
+cd my-new-app
+
+# Add toolbox submodule
 git submodule add https://github.com/samm-the-dev/toolbox .toolbox
 ```
 
-## 1. CI Workflow
+## 2. CI Workflow
 
-Copy the CI workflow to run lint, test, and build on PRs:
+Copy the CI workflow from the template's `config/` directory:
 
 ```bash
 mkdir -p .github/workflows
-cp .toolbox/templates/github-workflows/ci.yml .github/workflows/
+cp config/github-workflows/ci.yml .github/workflows/
 ```
 
 **Required npm scripts:** `lint`, `test`, `build`
 
-See [github-workflows/README.md](github-workflows/README.md) for customization options.
+See `config/github-workflows/README.md` for customization options.
 
-## 2. GitHub Pages Deployment (if applicable)
+## 3. GitHub Pages Deployment (if applicable)
 
 For static sites deployed to GitHub Pages:
 
 ```bash
-cp .toolbox/templates/github-workflows/deploy-gh-pages.yml .github/workflows/
+cp config/github-workflows/deploy-gh-pages.yml .github/workflows/
 ```
 
 Then enable GitHub Pages with Actions as the build source:
@@ -40,7 +42,7 @@ gh api repos/OWNER/REPO/pages --method POST -f build_type=workflow
 
 If Pages is already enabled and just needs switching from branch to Actions, use `PUT` instead of `POST`.
 
-## 3. Vercel Preview Deploys (optional)
+## 4. Vercel Preview Deploys (optional)
 
 The template includes `vercel.json` configured for preview-only deploys (production builds are skipped since GitHub Pages handles production). The cleanup workflow at `.github/workflows/cleanup-preview-deployments.yml` automatically removes stale GitHub deployment records when PRs close.
 
@@ -49,22 +51,21 @@ To enable preview deploys:
 1. Import the repo in the [Vercel Dashboard](https://vercel.com/import)
 2. Optionally shorten the preview deployment retention period in project Settings > Security > Deployment Retention Policy (default is 6 months; dashboard-only setting)
 
-## 4. Branch Protection + Copilot Auto-Review
+## 5. Branch Protection + Copilot Auto-Review
 
 Apply the shared ruleset template (includes PR requirements, branch protection, and Copilot auto-review):
 
 ```bash
-cd .toolbox/templates/github-rulesets
-gh api repos/OWNER/REPO/rulesets -X POST --input main.json
+gh api repos/OWNER/REPO/rulesets -X POST --input config/github-rulesets/main.json
 ```
 
 This creates a ruleset with: required PRs (thread resolution enforced), deletion/force-push prevention, and Copilot code review on push.
 
-Or configure manually via GitHub UI: Settings → Rules → Rulesets → New ruleset
+Or configure manually via GitHub UI: Settings > Rules > Rulesets > New ruleset
 
 To opt out of Copilot review, remove the `copilot_code_review` and `copilot_code_review_analysis_tools` rules from the template before applying.
 
-## 5. Auto-Delete Branches
+## 6. Auto-Delete Branches
 
 Automatically delete branches after PR merge:
 
@@ -72,25 +73,25 @@ Automatically delete branches after PR merge:
 gh api repos/OWNER/REPO -X PATCH -f delete_branch_on_merge=true
 ```
 
-Or configure via GitHub UI: Settings → General → Pull Requests → "Automatically delete head branches"
+Or configure via GitHub UI: Settings > General > Pull Requests > "Automatically delete head branches"
 
-## 6. Copilot Review Instructions (optional)
+## 7. Copilot Review Instructions (optional)
 
 Copy the shared review instructions so Copilot knows what to flag and what to skip:
 
 ```bash
 mkdir -p .github
-cp .toolbox/templates/ai-context/copilot-instructions.md .github/copilot-instructions.md
+cp .toolbox/ai-context/copilot-instructions.md .github/copilot-instructions.md
 ```
 
 Append project-specific rules below a `---` separator, same as the base template sync pattern.
 
-## 7. Accessibility Audit (optional)
+## 8. Accessibility Audit (optional)
 
 For projects with UI, add automated accessibility testing:
 
 ```bash
-cp .toolbox/templates/a11y-audit/audit-a11y.mjs scripts/
+cp config/a11y-audit/audit-a11y.mjs scripts/
 ```
 
 Add to package.json:
@@ -106,21 +107,21 @@ Add to package.json:
 }
 ```
 
-Then add the a11y job to your CI workflow (see github-workflows/README.md).
+Then add the a11y job to your CI workflow (see `config/github-workflows/README.md`).
 
-## 8. Claude Code Hooks (one-time machine setup)
+## 9. Claude Code Hooks (one-time machine setup)
 
 Copy hooks to your Claude Code config directory:
 
 ```bash
 mkdir -p ~/.claude/hooks
-cp .toolbox/templates/hooks/*.sh ~/.claude/hooks/
-cp .toolbox/templates/hooks/*.ps1 ~/.claude/hooks/   # Windows only
+cp .toolbox/claude-hooks/*.sh ~/.claude/hooks/
+cp .toolbox/claude-hooks/*.ps1 ~/.claude/hooks/   # Windows only
 chmod +x ~/.claude/hooks/*.sh
 ```
 
-Then add hook registrations to `~/.claude/settings.json` — see
-[hooks/README.md](hooks/README.md) for the full settings block.
+Then add hook registrations to `~/.claude/settings.json` -- see
+[claude-hooks/README.md](claude-hooks/README.md) for the full settings block.
 
 **Windows users:** Add `CLAUDE_CODE_SHELL` to settings.json so hooks run in bash.
 Adjust the path if Git is installed elsewhere (`where bash` to find it):
@@ -133,20 +134,24 @@ Adjust the path if Git is installed elsewhere (`where bash` to find it):
 ```
 
 **Customize:**
-- `guardrail.sh` — set `PROJECT_ROOT` to your workspace directory
-- `setup-path.sh` — add paths to tools on your machine
-- `notify.ps1` — optionally set `-AppLogo` to a custom icon
+- `guardrail.sh` -- set `PROJECT_ROOT` to your workspace directory
+- `setup-path.sh` -- add paths to tools on your machine
+- `notify.ps1` -- optionally set `-AppLogo` to a custom icon
 
 This is a one-time setup per machine, not per project.
 
-## 9. VSCode Configuration
+## 10. Clean Up Config Templates
 
-Copy debug/task configuration for consistent dev experience:
+After copying what you need from `config/`, remove it:
 
 ```bash
-mkdir -p .vscode
-cp .toolbox/templates/react-vite/.vscode/* .vscode/ 2>/dev/null || true
+rm -rf config/
+git add -A && git commit -m "Remove config templates after setup"
 ```
+
+## 11. VSCode Configuration
+
+The template includes `.vscode/launch.json` and `.vscode/tasks.json` for debugging and dev server tasks. Customize as needed.
 
 ## Verification
 
@@ -158,7 +163,7 @@ After setup, verify:
 - [ ] Push a test branch and confirm CI runs
 - [ ] (If Pages) Confirm deploy workflow triggers on main
 
-## 10. Claude Code LSP (one-time machine setup)
+## 12. Claude Code LSP (one-time machine setup)
 
 Install language server binaries and plugins for semantic code navigation. See [ai-context/lsp-setup.md](ai-context/lsp-setup.md) for the full guide.
 

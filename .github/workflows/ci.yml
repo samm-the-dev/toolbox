@@ -1,4 +1,4 @@
-# Adapted from templates/github-workflows/ci.yml
+# Toolbox CI (adapted from react-vite-starter config/github-workflows/ci.yml)
 
 name: CI
 

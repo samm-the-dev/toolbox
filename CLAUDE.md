@@ -1,26 +1,20 @@
 # toolbox
 
-A collection of project templates and configurations for bootstrapping new projects.
+Shared infrastructure for all projects, consumed as a `.toolbox` git submodule.
 
-@templates/ai-context/AGENTS.md
+@ai-context/AGENTS.md
 
 ---
 
 ## Repository Structure
 
-- `templates/` - Project templates and shared configurations
-  - `react-vite/` - React + Vite + TypeScript starter
-  - `ai-context/` - CLAUDE.md, AGENTS.md, and Copilot instructions
-  - `skills/` - Claude Code skills (pr-flow, etc.)
-  - `prettier/` - Shared Prettier configuration
-  - `github-workflows/` - CI/CD workflow templates
-  - `a11y-audit/` - Accessibility testing setup
+- `ai-context/` - Cross-tool AI guidance (AGENTS.md, CLAUDE.md, copilot-instructions)
+- `claude-hooks/` - Claude Code hooks (guardrails, reminders, notifications)
+- `claude-skills/` - Claude Code skills (pr-flow, review-lessons, etc.)
+- `google-cloud-auth/` - Google Cloud auth utilities
+- `lib/` - Shared runtime code (shared-schema, utilities)
+- `types/` - Shared TypeScript type definitions
 
-## Working on Templates
+## Scaffolding New Projects
 
-When modifying templates, test changes by:
-
-1. Running tests within the template directory (e.g., `npm run test:run`)
-2. Creating a new project from the template to verify setup
-
-Template `node_modules/` and `package-lock.json` are gitignored for local testing.
+Use the [react-vite-starter](https://github.com/samm-the-dev/react-vite-starter) template repo, then add this as a submodule. See [INIT.md](INIT.md) for the full checklist.

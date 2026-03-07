@@ -7,7 +7,7 @@ Builds and deploys the token exchange function from the submodule source
 using google-cloud-auth.config.json from the consuming project root.
 Run this script from the consuming project root directory.
 
-See .toolbox/templates/ai-context/google-cloud-auth.md.
+See .toolbox/ai-context/google-cloud-auth.md.
 
 Config file fields (google-cloud-auth.config.json):
   functionName  (required) - GCP function name

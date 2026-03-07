@@ -1,6 +1,6 @@
 ---
 name: review-lessons
-description: Audit accumulated lessons in memory and project files. Identify insights worth promoting to shared templates.
+description: Audit accumulated lessons in memory and project files. Identify insights worth promoting to shared guidance.
 user-invocable: true
 allowed-tools:
   - Read
@@ -13,7 +13,7 @@ argument-hint: "[focus-area]"
 
 # Review Lessons
 
-Audit knowledge scattered across memory files, project instructions, and recent work. Identify lessons worth promoting to shared templates — and lessons in templates that are outdated or redundant.
+Audit knowledge scattered across memory files, project instructions, and recent work. Identify lessons worth promoting to shared guidance — and guidance that is outdated or redundant.
 
 ## Arguments
 
@@ -43,7 +43,7 @@ Example:
 2026-02-05T18:45:00 | shell | promoted:1 trimmed:0 dupes:0 deferred:2
 ```
 
-- **Last entry's datetime** determines the "since" cutoff for incremental runs. Use file modification times and `git log --since` in template repos to identify what changed.
+- **Last entry's datetime** determines the "since" cutoff for incremental runs. Use file modification times and `git log --since` in the toolbox repo to identify what changed.
 - If the log doesn't exist (first run) or `$ARGUMENTS` is `full`, do a complete audit.
 - After completing the report, append a new entry with the current ISO datetime, scope, and summary counts.
 - **Scope values:** `full` (explicit or first run), `incremental` (when `$ARGUMENTS` is empty), or the focus area string when `$ARGUMENTS` names a topic (e.g., `shell`, `git`).
@@ -60,14 +60,14 @@ Start by finding what exists. Don't hardcode paths — discover them.
 ~/.claude/CLAUDE.md
 ```
 
-### Shared templates (promoted guidance)
+### Shared guidance (promoted lessons)
 
-Look for the shared template directory. It's typically referenced via `@path/to/file` import in `~/.claude/CLAUDE.md` or in a workspace `CLAUDE.md`. Follow the import chain to find the template root, then read:
+Look for the shared guidance directory. It's typically referenced via `@path/to/file` import in `~/.claude/CLAUDE.md` or in a workspace `CLAUDE.md`. Follow the import chain to find the ai-context root, then read:
 - `AGENTS.md` — cross-tool guidance
 - `CLAUDE.md` — Claude Code-specific guidance
 - Any companion files (see Companion File Pattern below)
 
-**Important:** When promoting changes, write to the **source repo** of the shared templates, not a submodule copy. The source path is the one referenced in `~/.claude/CLAUDE.md`. Projects embed shared templates via git submodules — writing to the submodule copy (e.g., `.toolbox/`) only creates uncommittable changes in the wrong repo.
+**Important:** When promoting changes, write to the **source repo** of the shared guidance, not a submodule copy. The source path is the one referenced in `~/.claude/CLAUDE.md`. Projects embed shared guidance via git submodules — writing to the submodule copy (e.g., `.toolbox/`) only creates uncommittable changes in the wrong repo.
 
 ### Project instructions
 
@@ -92,15 +92,15 @@ Sort every notable item into one of these buckets:
 
 | Bucket | Criteria | Action |
 |--------|----------|--------|
-| **Promote** | Applies to 2+ projects; about process/workflow/tooling, not project data | Draft addition to shared template |
-| **Already covered** | Lesson exists in both memory and templates | Note the duplication — consider removing from memory |
+| **Promote** | Applies to 2+ projects; about process/workflow/tooling, not project data | Draft addition to shared guidance |
+| **Already covered** | Lesson exists in both memory and shared guidance | Note the duplication — consider removing from memory |
 | **Outdated** | No longer accurate or relevant | Flag for removal from wherever it lives |
 | **Project-specific** | Only relevant to one project | Keep in project memory/instructions, don't promote |
-| **Trim from template** | In shared template but too detailed or niche | Move to companion file or remove |
+| **Trim from guidance** | In shared guidance but too detailed or niche | Move to companion file or remove |
 
-### Check template health
+### Check guidance health
 
-For each shared template file, assess:
+For each shared guidance file, assess:
 - **Line count** — AGENTS.md should target ≤150 lines of core rules
 - **Signal-to-noise** — is every instruction earning its token cost?
 - **Companion candidates** — detailed reference material (code snippets, command examples, troubleshooting) that could move to companion files without losing the core rule
@@ -114,10 +114,10 @@ Present findings as a structured report with these sections:
 For each item:
 - **Lesson**: One-line summary
 - **Source**: Where it was found (file + context)
-- **Target**: Which shared template file and section
+- **Target**: Which shared guidance file and section
 - **Draft**: The actual text to add (ready to paste)
 
-### Template Health
+### Guidance Health
 
 - Current line counts vs targets
 - Items that should move to companion files
@@ -125,7 +125,7 @@ For each item:
 
 ### Duplication & Cleanup
 
-- Items duplicated between memory and templates
+- Items duplicated between memory and shared guidance
 - Memory items that can be removed (already promoted or outdated)
 
 ### Deferred
@@ -136,7 +136,7 @@ For each item:
 
 ## Companion File Pattern
 
-When promoting content, follow this structure for shared template directories:
+When promoting content, follow this structure for the shared guidance directory:
 
 ```
 ai-context/

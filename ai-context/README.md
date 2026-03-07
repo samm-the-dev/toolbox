@@ -1,4 +1,4 @@
-# AI Context Templates
+# AI Context
 
 Cross-tool AI assistant context following the [AGENTS.md convention](https://github.com/anthropics/agents-md).
 
@@ -131,6 +131,6 @@ cp .toolbox/ai-context/copilot-instructions.md .github/copilot-instructions.md
 
 Projects append project-specific sections below a `---` separator (e.g., Tailwind theme rules, game terminology). When updating the base template, merge only the portion above the separator to avoid clobbering project-specific content.
 
-## Related Templates
+## Related
 
 - **[claude-hooks/](../claude-hooks/)** — Claude Code hooks that enforce AGENTS.md conventions (guardrails, reminders, notifications). See [claude-hooks/README.md](../claude-hooks/README.md).

@@ -1,5 +1,7 @@
 # toolbox
 
+@todo.md
+
 Shared infrastructure for all projects, consumed as a `.toolbox` git submodule.
 
 @ai-context/AGENTS.md

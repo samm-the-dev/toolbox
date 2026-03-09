@@ -127,6 +127,16 @@ Some Unix tools aren't available by default on Windows:
 
 Prefer tool-native filtering (e.g., `gh api --jq '.field'`) over piping to `jq`.
 
+## Node.js child_process on Windows
+
+`execFileSync('npx', ...)` can fail on Windows because the actual executable is `npx.cmd`. Prefer keeping argument-safe APIs and use one of these approaches:
+
+- On Windows, call `execFileSync('npx.cmd', ...)` / `spawnSync('npx.cmd', ...)` so the correct wrapper is invoked.
+- Or, pass `{ shell: true }` to `execFileSync` / `spawnSync` so the shell resolves `.cmd` extensions automatically.
+- `execSync('npx ...')` also works because it runs through a shell, but it forces you into string commands and manual quoting/escaping; use it only when you explicitly need shell parsing.
+
+The same considerations apply to other npm-installed CLI tools (for example, `prettier`, `eslint`, etc.) when called via `execFileSync` / `spawnSync`.
+
 ## gh API Path Gotcha (Git Bash / MSYS2)
 
 Git Bash (MSYS2) rewrites arguments starting with `/` as Windows paths. Omit the leading slash in `gh api` calls:

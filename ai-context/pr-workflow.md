@@ -136,6 +136,16 @@ Copilot reviews the full diff on each push, not just the delta. Previously dismi
 
 When triaging, check if a comment matches a previously dismissed thread before re-analyzing. Reply with "Already addressed in previous round" and resolve.
 
+## Auto-Delete Merged Branches
+
+Enable on each repo to avoid stale branch accumulation:
+
+```bash
+gh api repos/OWNER/REPO -X PATCH -f delete_branch_on_merge=true
+```
+
+Also settable in GitHub UI: Settings > General > Pull Requests > "Automatically delete head branches".
+
 ## Branch Protection
 
 GitHub has two protection systems:
@@ -143,6 +153,16 @@ GitHub has two protection systems:
 - **Branch protection rules** (older): `gh api repos/OWNER/REPO/branches/main/protection`
 
 Prefer rulesets for new repos.
+
+### Automated pushes to protected branches
+
+When GitHub Actions workflows need to push to protected branches (e.g., committing generated data files), use **deploy keys** — not PATs:
+
+- Deploy keys are repo-scoped (least privilege), don't expire, and can be added as ruleset bypass actors
+- PATs are user-scoped, require periodic rotation, and can't bypass rulesets without adding the user as a bypass actor
+- Generate with `ssh-keygen -t ed25519`, add the public key as a deploy key (write access), store the private key as a repo secret
+- In workflows, use `actions/checkout` with `ssh-key: ${{ secrets.DEPLOY_KEY }}` instead of `token:`
+- Add the deploy key as a bypass actor in the ruleset via Settings > Rules or the API
 
 ## Fork PRs
 

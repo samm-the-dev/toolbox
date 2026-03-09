@@ -51,7 +51,8 @@ Works for `fetch`, `localStorage`, `window.matchMedia`, and any other global.
 ## vi.mock Factory Hoisting
 
 `vi.mock()` calls are hoisted above all imports. Factory functions cannot reference
-outer-scope variables — they execute before any `const`/`let` declarations:
+regular outer-scope `const`/`let` bindings (unless created via a hoisted helper like
+`vi.hoisted(...)`), because they execute before those bindings are initialized:
 
 ```typescript
 // Bad — ReferenceError: Cannot access 'mockPosts' before initialization

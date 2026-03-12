@@ -26,6 +26,14 @@ on:
   pull_request_review:
     types: [submitted]
 
+# Required by claude-code-action@beta for OIDC token + write access.
+# The repo default is often read-only; omitting this causes startup_failure.
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+
 jobs:
   claude:
     uses: samm-the-dev/toolbox/.github/workflows/claude.yml@main

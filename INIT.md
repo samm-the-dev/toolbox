@@ -126,6 +126,8 @@ The caller references `samm-the-dev/toolbox/.github/workflows/claude.yml@main` a
 gh secret set ANTHROPIC_API_KEY --repo samm-the-dev/my-new-app
 ```
 
+Pull the key from your password manager (Dashlane, 1Password, etc.) to avoid storing it in plaintext. If you later move repos under a GitHub organization, you can replace per-repo secrets with a single [organization secret](https://docs.github.com/en/actions/security-for-github-actions/security-guides/using-secrets-in-github-actions#creating-secrets-for-an-organization) scoped to selected repos.
+
 ## 10. Claude Code Hooks (one-time machine setup)
 
 Copy hooks to your Claude Code config directory:

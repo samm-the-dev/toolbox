@@ -80,7 +80,7 @@ jobs:
       - uses: anthropics/claude-code-action@beta
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          prompt: ${{ inputs.adversarial_prompt }}
+          direct_prompt: ${{ inputs.adversarial_prompt }}
 
   # ── Copilot response: reply to copilot-pull-request-reviewer[bot] ──────────
   copilot-response:
@@ -97,7 +97,7 @@ jobs:
       - uses: anthropics/claude-code-action@beta
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          prompt: |-
+          direct_prompt: |-
             Copilot just submitted a review on this PR. Read its comments,
             evaluate each suggestion, and respond inline:
             - If the suggestion is valid, fix the code and reply confirming.

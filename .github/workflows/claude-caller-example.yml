@@ -1,0 +1,30 @@
+# Example caller workflow — drop this into consumer repos at
+# .github/workflows/claude.yml to use the shared reusable workflow
+# from toolbox. Adjust 'mode' or remove triggers you don't need.
+
+name: Claude Code
+
+on:
+  # On-demand: @claude mentions
+  issue_comment:
+    types: [created, edited]
+  pull_request_review_comment:
+    types: [created, edited]
+  issues:
+    types: [opened, assigned]
+
+  # Adversarial review: non-draft PR open/update
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+  # Copilot response: when Copilot submits a review
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  claude:
+    uses: samm-the-dev/toolbox/.github/workflows/claude.yml@main
+    with:
+      mode: "all"
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

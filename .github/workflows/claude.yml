@@ -1,0 +1,102 @@
+# Reusable Claude Code workflow — called from consumer repos via workflow_call.
+# Supports three modes: on-demand @claude mentions, adversarial PR review,
+# and responding to Copilot reviews. Caller defines the triggers; this
+# workflow routes to the right job based on event type + mode input.
+
+name: Claude Code
+
+on:
+  workflow_call:
+    inputs:
+      mode:
+        type: string
+        required: false
+        default: "all"
+        description: "on-demand | adversarial | copilot-response | all"
+      trigger_phrase:
+        type: string
+        required: false
+        default: "@claude"
+        description: "Trigger phrase for on-demand mentions"
+      adversarial_prompt:
+        type: string
+        required: false
+        default: ""
+        description: "Custom prompt override for adversarial review"
+    secrets:
+      ANTHROPIC_API_KEY:
+        required: true
+
+# ── On-demand: @claude mentions in issues, PRs, and review comments ──────────
+jobs:
+  on-demand:
+    if: >-
+      (inputs.mode == 'all' || inputs.mode == 'on-demand')
+      && (
+        github.event_name == 'issue_comment'
+        || github.event_name == 'pull_request_review_comment'
+        || (github.event_name == 'issues' && github.event.action == 'opened')
+        || (github.event_name == 'issues' && github.event.action == 'assigned')
+      )
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: anthropics/claude-code-action@beta
+        with:
+          trigger_phrase: ${{ inputs.trigger_phrase }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+
+  # ── Adversarial PR review: auto-fires on non-draft PR open/update ──────────
+  adversarial-review:
+    if: >-
+      (inputs.mode == 'all' || inputs.mode == 'adversarial')
+      && github.event_name == 'pull_request'
+      && !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: anthropics/claude-code-action@beta
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |-
+            ${{ inputs.adversarial_prompt != '' && inputs.adversarial_prompt || '
+            You are a senior staff engineer performing adversarial code review.
+            Review this PR with a critical eye. For each issue found, cite the
+            file and line. End with an explicit APPROVE or REQUEST CHANGES verdict
+            using the GitHub review API (submit a review, not just a comment).
+
+            Focus areas:
+            - Correctness and edge cases
+            - Security (OWASP top 10, injection, auth)
+            - Performance and scalability
+            - Error handling and failure modes
+            - API design and backwards compatibility
+            - Test coverage gaps
+            ' }}
+
+  # ── Copilot response: reply to copilot-pull-request-reviewer[bot] ──────────
+  copilot-response:
+    if: >-
+      (inputs.mode == 'all' || inputs.mode == 'copilot-response')
+      && github.event_name == 'pull_request_review'
+      && github.event.review.user.login == 'copilot-pull-request-reviewer[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: anthropics/claude-code-action@beta
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |-
+            Copilot just submitted a review on this PR. Read its comments,
+            evaluate each suggestion, and respond inline:
+            - If the suggestion is valid, fix the code and reply confirming.
+            - If the suggestion is incorrect or not applicable, reply explaining why.
+            Post your own review summarizing what you fixed and what you dismissed.
+          allowed_bots: "copilot-pull-request-reviewer[bot]"

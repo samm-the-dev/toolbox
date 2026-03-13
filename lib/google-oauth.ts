@@ -304,7 +304,7 @@ export function createGoogleAuth(config: GoogleAuthConfig): GoogleAuth {
   // --- Incremental consent ---
 
   function requestIncrementalScope(additionalScope: string): Promise<string | null> {
-    if (typeof google === 'undefined' || !google.accounts?.oauth2) {
+    if (!clientId || typeof google === 'undefined' || !google.accounts?.oauth2) {
       return Promise.resolve(null);
     }
 

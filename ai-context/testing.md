@@ -64,3 +64,37 @@ vi.mock('@/data/posts', () => ({
   posts: [{ title: 'Test' }],
 }));
 ```
+
+## Test Stub Isolation
+
+Module-level singletons with mutable closure state persist across tests. `beforeEach`
+cleanup (e.g., `localStorage.clear()`) won't help if the stub bypasses the real storage:
+
+```typescript
+// Bad — singleton's closure state leaks between tests
+const storage = createStorage({ createDefault: () => ({ count: 0 }) });
+export { storage };
+
+function createStorage<T>(opts: { createDefault: () => T }) {
+  let data: T = opts.createDefault();  // persists across tests!
+  return {
+    load: () => data,
+    save: (val: T) => { data = val; },
+  };
+}
+
+// Good — backed by localStorage so beforeEach cleanup works
+export function createStorage<T>(opts: { storageKey: string; createDefault: () => T }) {
+  return {
+    load: (): T => {
+      const raw = localStorage.getItem(opts.storageKey);
+      return raw ? JSON.parse(raw) : opts.createDefault();
+    },
+    save: (val: T) => {
+      localStorage.setItem(opts.storageKey, JSON.stringify(val));
+    },
+  };
+}
+```
+
+Symptoms: tests pass in isolation (`-t "testname"`) but fail when run together.

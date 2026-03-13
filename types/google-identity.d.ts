@@ -14,6 +14,7 @@ declare namespace google.accounts.oauth2 {
   interface TokenClientConfig {
     client_id: string;
     scope: string;
+    include_granted_scopes?: boolean;
     callback: (response: TokenResponse) => void;
     error_callback?: (error: { type: string; message: string }) => void;
   }
@@ -39,6 +40,7 @@ declare namespace google.accounts.oauth2 {
     scope: string;
     ux_mode: 'popup' | 'redirect';
     redirect_uri?: string;
+    include_granted_scopes?: boolean;
     callback: (response: CodeResponse) => void;
     error_callback?: (error: { type: string; message: string }) => void;
   }

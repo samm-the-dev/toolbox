@@ -101,12 +101,28 @@ If the app uses the [token exchange pattern](google-cloud-auth.md):
 ### Gotchas
 
 - **SSL cert timing**: GitHub won't provision the cert until DNS resolves to their servers. Set up DNS first, then the Pages custom domain.
-- **CNAME file required**: Without `public/CNAME`, every deploy resets the custom domain setting in GitHub Pages.
+- **CNAME file required**: Without `public/CNAME`, every deploy resets the custom domain setting in GitHub Pages. Not applicable to the shared-domain pattern (Pattern B below) — those repos deliberately have no CNAME.
 - **Old bookmarks**: GitHub automatically 301-redirects from `<user>.github.io/<repo>/` to the custom domain. No action needed.
 - **Branch protection**: Direct pushes to `main` may be blocked. Create a PR for the repo changes.
 
-## Subdomain Strategy
+## Domain Strategies
 
-Use subdomains of a base domain for deployed projects (e.g., `ohm.samm-the.dev`, `app2.samm-the.dev`). Each subdomain gets its own CNAME record pointing to the same GitHub Pages host. GitHub routes by matching the CNAME file in each repo.
+Two patterns for deploying multiple projects under a shared base domain:
+
+### Pattern A — Per-project subdomain
+
+Each project gets its own subdomain (e.g., `build-a-jam.samm-the.dev`). Each repo has its own `public/CNAME` file and its own custom domain set in GHP settings. GitHub routes by matching the CNAME file in each repo. Vite `base: '/'`.
+
+DNS: one CNAME record per subdomain, all pointing to `<user>.github.io`.
+
+Use when: the project warrants its own identity/domain, or is a standalone app not part of a suite.
+
+### Pattern B — Shared domain via user site
+
+All projects serve under a single domain at subpaths (e.g., `apps.samm-the.dev/ohm`). The user site repo (`<user>.github.io`) owns the custom domain; project repos have no CNAME and no custom domain set — GitHub automatically routes them at `customdomain/<repo>/`. Vite `base: command === 'build' ? '/<repo>/' : '/'`.
+
+DNS: one CNAME record for the shared subdomain pointing to `<user>.github.io`. The user site repo needs at least one commit and GHP enabled with the custom domain set.
+
+Use when: grouping related apps under a suite domain, or keeping per-project DNS overhead low.
 
 The base domain's A records only need to be configured when something is hosted at the apex (e.g., a personal site).

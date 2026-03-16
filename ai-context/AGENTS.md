@@ -40,7 +40,7 @@ When initializing a new project with toolbox as a submodule, follow the [INIT.md
 
 ## GitHub Actions
 
-See [github-actions.md](github-actions.md) for reusable workflow permissions, the workflow self-introduction gap, and `claude-code-action` API changes.
+See [github-actions.md](github-actions.md) for reusable workflow permissions, the workflow self-introduction gap, and `claude-code-action` version pinning.
 
 ## PR Review Workflow
 
@@ -82,6 +82,7 @@ For code examples (hooks, components, utilities), see [testing.md](testing.md).
 - Maintain accessibility (WCAG 2.1 AA)
 - Use ASCII only in executed code (scripts, source files) — reserve non-ASCII (em dashes, smart quotes, arrows) for human-facing documentation
 - When splitting code, deduplicate shared logic in the same pass — don't leave identical blocks across modules for a follow-up
+- Import named types directly (`import type { MouseEvent } from 'react'`), never use namespace access (`React.MouseEvent`) — keeps imports explicit and avoids lint issues
 
 ### Do Not
 
@@ -148,3 +149,7 @@ For examples, escaping pitfalls, and tool availability, see [shell-reference.md]
 Use `utf-8-sig` encoding for files that may be written by PowerShell 5.1 (BOM). Use `Path.is_relative_to()` for path containment checks (not `str.startswith()`). Guard `sys.stderr` before adding `StreamHandler` under `pythonw.exe`. Prefer `python -m pip` over calling `pip` directly.
 
 For examples, Windows-specific patterns, and file locking, see [python-reference.md](python-reference.md).
+
+## FFmpeg
+
+For audio/video processing patterns (stereo downmix, crop detection, stream-copy cutting), see [ffmpeg-reference.md](ffmpeg-reference.md).

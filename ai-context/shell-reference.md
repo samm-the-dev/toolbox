@@ -148,3 +148,21 @@ gh api /repos/OWNER/REPO/pulls
 # Correct
 gh api repos/OWNER/REPO/pulls
 ```
+
+## gh API: Nested JSON with `--input`
+
+`--field key=value` does type coercion for scalars (numbers, booleans) and supports `key[]=value` for arrays of primitives, but it cannot parse JSON literals into nested arrays or objects — those become strings. For PUT/POST requests with nested structures, write the body to a file and pass with `--input`:
+
+```bash
+# Bad — --field wraps the array in quotes → HTTP 422 "not of type array"
+gh api repos/OWNER/REPO/rulesets/ID -X PUT \
+  --field 'bypass_actors=[{"actor_id":5}]'
+
+# Good — --input sends raw JSON
+cat > /tmp/payload.json << 'EOF'
+{
+  "bypass_actors": [{"actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always"}]
+}
+EOF
+gh api repos/OWNER/REPO/rulesets/ID -X PUT --input /tmp/payload.json
+```

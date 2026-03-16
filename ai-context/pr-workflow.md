@@ -57,7 +57,7 @@ This is the preferred method — no polling or manual refresh needed.
 
 ### Setup
 
-Enable Copilot reviews via repo Settings > Rules > Rulesets, or manually trigger via PR page > Reviewers > gear icon > select "copilot-pull-request-reviewer".
+Enable automatic Copilot reviews via the `copilot_code_review` rule type in a branch ruleset — include it in the `rules` array when creating or updating a ruleset via `gh api`. See `config/github-rulesets/main.json` in toolbox for the full template. Or enable manually via repo Settings > Rules > Rulesets.
 
 ### Triage Process
 
@@ -153,6 +153,22 @@ GitHub has two protection systems:
 - **Branch protection rules** (older): `gh api repos/OWNER/REPO/branches/main/protection`
 
 Prefer rulesets for new repos.
+
+### Solo-repo owner bypass
+
+For personal repos where PR overhead is unwanted for routine pushes, add the repo owner as a bypass actor. In the ruleset payload:
+
+```json
+"bypass_actors": [
+  {
+    "actor_id": 5,
+    "actor_type": "RepositoryRole",
+    "bypass_mode": "always"
+  }
+]
+```
+
+Built-in role IDs: 1=Read, 2=Triage, 3=Write, 4=Maintain, **5=Admin**. Use `--input <file>` (not `--field`) when sending this via `gh api` — see [shell-reference.md](shell-reference.md#gh-api-nested-json-with---input).
 
 ### Automated pushes to protected branches
 

@@ -123,6 +123,20 @@ else:
 
 This is the Python equivalent of .NET's `FileStream(path, FileMode.Open, FileAccess.Read, FileShare.None)`.
 
+## Windows DLL Extension Modules
+
+When importing a Python extension DLL that has its own DLL dependencies in a non-standard
+directory (CUDA, hardware SDKs, game engine APIs), call `os.add_dll_directory()` before
+the import or Python won't find the dependencies:
+
+```python
+import os
+os.add_dll_directory(r"C:\Program Files\Vendor\SDK")
+import vendor_module  # now finds its DLL dependencies
+```
+
+Required in Python 3.8+ on Windows (replaces the old PATH-based DLL resolution).
+
 ## Package Path Constants
 
 When a Python package needs to reference a project root or data directory, define the path once in a central config module rather than computing it per-file:

@@ -148,3 +148,21 @@ gh api /repos/OWNER/REPO/pulls
 # Correct
 gh api repos/OWNER/REPO/pulls
 ```
+
+## gh API: Nested JSON with `--input`
+
+`--field key=value` serializes every value as a string, even if it looks like JSON. For PUT/POST requests with nested arrays or objects, write the body to a file and pass with `--input`:
+
+```bash
+# Bad — --field wraps the array in quotes → HTTP 422 "not of type array"
+gh api repos/OWNER/REPO/rulesets/ID -X PUT \
+  --field 'bypass_actors=[{"actor_id":5}]'
+
+# Good — --input sends raw JSON
+cat > /tmp/payload.json << 'EOF'
+{
+  "bypass_actors": [{"actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always"}]
+}
+EOF
+gh api repos/OWNER/REPO/rulesets/ID -X PUT --input /tmp/payload.json
+```

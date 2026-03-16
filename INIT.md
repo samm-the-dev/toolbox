@@ -63,7 +63,7 @@ This creates a ruleset with: required PRs (thread resolution enforced), deletion
 
 Or configure manually via GitHub UI: Settings > Rules > Rulesets > New ruleset
 
-To opt out of Copilot review, remove the `copilot_code_review` and `copilot_code_review_analysis_tools` rules from the template before applying.
+To opt out of Copilot review, remove the `copilot_code_review` rule from the template before applying.
 
 ## 6. Auto-Delete Branches
 

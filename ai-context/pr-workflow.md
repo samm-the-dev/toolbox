@@ -154,9 +154,9 @@ GitHub has two protection systems:
 
 Prefer rulesets for new repos.
 
-### Solo-repo owner bypass
+### Admin-role bypass
 
-For personal repos where PR overhead is unwanted for routine pushes, add the repo owner as a bypass actor. In the ruleset payload:
+For personal repos where PR overhead is unwanted for routine pushes, add the Admin role as a bypass actor. This grants bypass to all repo admins — on a solo repo, that's typically just the owner. In the ruleset payload:
 
 ```json
 "bypass_actors": [

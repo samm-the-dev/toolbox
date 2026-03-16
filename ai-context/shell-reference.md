@@ -151,7 +151,7 @@ gh api repos/OWNER/REPO/pulls
 
 ## gh API: Nested JSON with `--input`
 
-`--field key=value` serializes every value as a string, even if it looks like JSON. For PUT/POST requests with nested arrays or objects, write the body to a file and pass with `--input`:
+`--field key=value` does type coercion for scalars (numbers, booleans) and supports `key[]=value` for arrays of primitives, but it cannot parse JSON literals into nested arrays or objects — those become strings. For PUT/POST requests with nested structures, write the body to a file and pass with `--input`:
 
 ```bash
 # Bad — --field wraps the array in quotes → HTTP 422 "not of type array"

@@ -174,13 +174,7 @@ The template includes `.vscode/launch.json` and `.vscode/tasks.json` for debuggi
 
 ## 13. PWA Icon Generation (if applicable)
 
-Copy the icon generation script from the template:
-
-```bash
-cp config/pwa-icons/generate-pwa-icons.sh scripts/
-```
-
-Usage:
+The template includes `scripts/generate-pwa-icons.sh`. Usage:
 ```bash
 # From a Lucide icon name
 bash scripts/generate-pwa-icons.sh -i wallet -b "#0f172a" -f "#22c55e"

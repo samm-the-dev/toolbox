@@ -2,15 +2,13 @@
 
 Use this checklist when initializing a new project from the [react-vite-starter](https://github.com/samm-the-dev/react-vite-starter) template.
 
-## 1. Scaffold and Connect
+## 1. Scaffold
 
 ```bash
 # Create repo from template (clean commit history)
 gh repo create my-new-app --template samm-the-dev/react-vite-starter --clone --public
 cd my-new-app
-
-# Add toolbox submodule
-git submodule add https://github.com/samm-the-dev/toolbox .toolbox
+npm install  # postinstall initializes .toolbox submodule
 ```
 
 ## 2. CI Workflow

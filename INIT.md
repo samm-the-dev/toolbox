@@ -195,7 +195,7 @@ After setup, verify:
 - [ ] Push a test branch and confirm CI runs
 - [ ] (If Pages) Confirm deploy workflow triggers on main
 
-## 16. Claude Code LSP (one-time machine setup)
+## 14. Claude Code LSP (one-time machine setup)
 
 Install language server binaries and plugins for semantic code navigation. See [ai-context/lsp-setup.md](ai-context/lsp-setup.md) for the full guide.
 
@@ -205,10 +205,11 @@ This is a one-time setup per machine, not per project.
 
 ## Toolbox-Specific Additions
 
-These changes are made after cloning from the template and adding the `.toolbox` submodule. They can't live in the template itself because they depend on the submodule.
+These changes are made after cloning from the template. The `.toolbox` submodule is included in the template and initialized automatically by `npm install` (via the postinstall script). These additions can't live in the template because they reference the submodule contents.
 
-**tsconfig.app.json** -- add toolbox types and test excludes:
-```json
+**tsconfig.app.json** -- add toolbox types and test excludes to the existing config:
+```jsonc
+// add to existing tsconfig.app.json
 "include": ["src", ".toolbox/types"],
 "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/test"]
 ```

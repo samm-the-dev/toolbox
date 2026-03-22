@@ -34,6 +34,7 @@ export interface LocalStorageSync<T> {
   saveToLocal(data: T): void;
   loadFromLocal(): T;
   clearLocal(): void;
+  recoverFromStorage(): Promise<T | null>;
 }
 
 export function createLocalStorage<T extends { version: number }>(
@@ -89,5 +90,18 @@ export function createLocalStorage<T extends { version: number }>(
     }
   }
 
-  return { saveToLocal, loadFromLocal, clearLocal };
+  async function recoverFromStorage(): Promise<T | null> {
+    if (!storage) return null;
+    try {
+      const data = await storage.get<T>(storageKey);
+      if (!data) return null;
+      if (data.version !== version) return null;
+      return sanitize(data);
+    } catch (e) {
+      console.error(`${logPrefix} Recovery from StorageService failed:`, e);
+      return null;
+    }
+  }
+
+  return { saveToLocal, loadFromLocal, clearLocal, recoverFromStorage };
 }

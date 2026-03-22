@@ -57,10 +57,13 @@ function createAuth(overrides: Partial<GoogleAuthConfig> = {}) {
 
 describe('getAuthLevel', () => {
   beforeEach(() => {
-    vi.unstubAllGlobals();
     vi.restoreAllMocks();
     localStorage.clear();
     setupGoogleGlobal();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('returns 0 when localStorage throws', () => {

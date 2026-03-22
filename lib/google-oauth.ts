@@ -9,6 +9,8 @@
  * See ai-context/google-cloud-auth.md for architecture details.
  */
 
+import type { StorageService } from './storage-service/types';
+
 export interface GoogleAuthConfig {
   clientId: string;
   /** Space-separated OAuth scopes */
@@ -21,6 +23,8 @@ export interface GoogleAuthConfig {
   storageKeyPrefix: string;
   /** Console log prefix (e.g., '[Ohm]') */
   logPrefix: string;
+  /** Optional async storage backend for token persistence. When provided, tokens are read/written through StorageService instead of raw localStorage. */
+  storage?: StorageService;
 }
 
 export interface GoogleAuth {
@@ -44,7 +48,8 @@ export interface GoogleAuth {
 }
 
 export function createGoogleAuth(config: GoogleAuthConfig): GoogleAuth {
-  const { clientId, scope, tokenExchangeUrl, appId, storageKeyPrefix, logPrefix } = config;
+  const { clientId, scope, tokenExchangeUrl, appId, storageKeyPrefix, logPrefix, storage } =
+    config;
 
   const useCodeFlow = !!tokenExchangeUrl;
 
@@ -123,6 +128,19 @@ export function createGoogleAuth(config: GoogleAuthConfig): GoogleAuth {
   // --- Token persistence helpers ---
 
   function storeTokens(access: string, expiry: number, refresh?: string): void {
+    if (storage) {
+      const tokens: Record<string, string> = {
+        [ACCESS_TOKEN_KEY]: access,
+        [TOKEN_EXPIRY_KEY]: String(expiry),
+      };
+      if (refresh) tokens[REFRESH_TOKEN_KEY] = refresh;
+      Promise.all(
+        Object.entries(tokens).map(([k, v]) => storage.set(k, v)),
+      ).catch(() => {
+        // Swallow -- in-memory tokens still work.
+      });
+      return;
+    }
     try {
       localStorage.setItem(ACCESS_TOKEN_KEY, access);
       localStorage.setItem(TOKEN_EXPIRY_KEY, String(expiry));
@@ -135,6 +153,16 @@ export function createGoogleAuth(config: GoogleAuthConfig): GoogleAuth {
   }
 
   function clearStoredTokens(): void {
+    if (storage) {
+      Promise.all([
+        storage.delete(REFRESH_TOKEN_KEY),
+        storage.delete(ACCESS_TOKEN_KEY),
+        storage.delete(TOKEN_EXPIRY_KEY),
+      ]).catch(() => {
+        // Ignore storage errors when clearing tokens.
+      });
+      return;
+    }
     try {
       localStorage.removeItem(REFRESH_TOKEN_KEY);
       localStorage.removeItem(ACCESS_TOKEN_KEY);
@@ -163,9 +191,16 @@ export function createGoogleAuth(config: GoogleAuthConfig): GoogleAuth {
     let refreshToken: string | null = null;
 
     try {
-      cachedToken = localStorage.getItem(ACCESS_TOKEN_KEY);
-      cachedExpiry = Number(localStorage.getItem(TOKEN_EXPIRY_KEY) || '0');
-      refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+      if (storage) {
+        cachedToken = await storage.get<string>(ACCESS_TOKEN_KEY);
+        const expiryStr = await storage.get<string>(TOKEN_EXPIRY_KEY);
+        cachedExpiry = Number(expiryStr || '0');
+        refreshToken = await storage.get<string>(REFRESH_TOKEN_KEY);
+      } else {
+        cachedToken = localStorage.getItem(ACCESS_TOKEN_KEY);
+        cachedExpiry = Number(localStorage.getItem(TOKEN_EXPIRY_KEY) || '0');
+        refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+      }
     } catch {
       return null;
     }
@@ -394,6 +429,15 @@ export function createGoogleAuth(config: GoogleAuthConfig): GoogleAuth {
     // Clear persisted access token/expiry so silentRefresh() won't rehydrate
     // the stale token from localStorage. Keep the refresh token so the next
     // silentRefresh() goes straight to the cloud function for a fresh token.
+    if (storage) {
+      Promise.all([
+        storage.delete(ACCESS_TOKEN_KEY),
+        storage.delete(TOKEN_EXPIRY_KEY),
+      ]).catch(() => {
+        // Ignore storage errors.
+      });
+      return;
+    }
     try {
       localStorage.removeItem(ACCESS_TOKEN_KEY);
       localStorage.removeItem(TOKEN_EXPIRY_KEY);

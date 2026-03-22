@@ -3,7 +3,14 @@
  *
  * Wraps save/load/clear with version checking and sanitization.
  * Consumer provides the storage key, version, sanitizer, and default factory.
+ *
+ * Optionally accepts a StorageService instance. When provided, save/load/clear
+ * delegate to StorageService instead of raw localStorage. The sync loadFromLocal
+ * still reads localStorage (for instant mount), but saveToLocal writes through
+ * StorageService which handles OPFS + localStorage mirroring.
  */
+
+import type { StorageService } from './storage-service/types';
 
 export interface LocalStorageConfig<T> {
   storageKey: string;
@@ -11,6 +18,8 @@ export interface LocalStorageConfig<T> {
   version: number;
   sanitize: (data: T) => T;
   createDefault: () => T;
+  /** Optional async storage backend. When provided, save/clear delegate to it. */
+  storage?: StorageService;
 }
 
 export interface LocalStorageSync<T> {
@@ -22,9 +31,15 @@ export interface LocalStorageSync<T> {
 export function createLocalStorage<T extends { version: number }>(
   config: LocalStorageConfig<T>,
 ): LocalStorageSync<T> {
-  const { storageKey, logPrefix, version, sanitize, createDefault } = config;
+  const { storageKey, logPrefix, version, sanitize, createDefault, storage } = config;
 
   function saveToLocal(data: T): void {
+    if (storage) {
+      storage.set(storageKey, data).catch((e) => {
+        console.error(`${logPrefix} Failed to save via StorageService:`, e);
+      });
+      return;
+    }
     try {
       localStorage.setItem(storageKey, JSON.stringify(data));
     } catch (e) {
@@ -33,6 +48,9 @@ export function createLocalStorage<T extends { version: number }>(
   }
 
   function loadFromLocal(): T {
+    // Always read from localStorage synchronously for instant mount.
+    // StorageService (OPFS adapter) mirrors writes to localStorage,
+    // so this stays in sync with the async backend.
     try {
       const raw = localStorage.getItem(storageKey);
       if (raw) {
@@ -48,6 +66,12 @@ export function createLocalStorage<T extends { version: number }>(
   }
 
   function clearLocal(): void {
+    if (storage) {
+      storage.delete(storageKey).catch((e) => {
+        console.error(`${logPrefix} Failed to clear via StorageService:`, e);
+      });
+      return;
+    }
     try {
       localStorage.removeItem(storageKey);
     } catch (e) {

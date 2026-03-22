@@ -9,6 +9,7 @@
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { createGoogleAuth } from './google-oauth';
 import type { GoogleAuthConfig } from './google-oauth';
+import type { StorageService } from './storage-service/types';
 
 // --- GIS mocks ---
 
@@ -402,5 +403,152 @@ describe('disconnect', () => {
     expect(localStorage.getItem(REFRESH_KEY)).toBeNull();
     expect(localStorage.getItem(ACCESS_KEY)).toBeNull();
     expect(mockRevoke).toHaveBeenCalledWith('at');
+  });
+});
+
+// --- StorageService integration ---
+
+function createMockStorage(): StorageService & { store: Map<string, unknown> } {
+  const store = new Map<string, unknown>();
+  return {
+    adapter: 'opfs',
+    store,
+    get: vi.fn(async <T>(key: string) => (store.get(key) as T) ?? null),
+    set: vi.fn(async <T>(_key: string, value: T) => { store.set(_key, value); }),
+    delete: vi.fn(async (key: string) => { store.delete(key); }),
+    clear: vi.fn(async () => { store.clear(); }),
+    keys: vi.fn(async () => [...store.keys()]),
+  };
+}
+
+describe('StorageService token persistence', () => {
+  let mockStorage: ReturnType<typeof createMockStorage>;
+
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    localStorage.clear();
+    setupGoogleGlobal();
+    vi.stubGlobal('fetch', vi.fn());
+    mockStorage = createMockStorage();
+  });
+
+  it('storeTokens writes to StorageService instead of localStorage', async () => {
+    (globalThis.fetch as Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        access_token: 'new-token',
+        expires_in: 3600,
+        refresh_token: 'new-refresh',
+      }),
+    });
+
+    const auth = createAuth({ storage: mockStorage });
+    auth.initAuth();
+
+    const p = auth.requestAccessToken('consent');
+    mockCodeClient.callback({ code: 'code-1', scope: 'drive.appdata' });
+    await p;
+
+    // Tokens written to StorageService
+    expect(mockStorage.set).toHaveBeenCalledWith(ACCESS_KEY, 'new-token');
+    expect(mockStorage.set).toHaveBeenCalledWith(REFRESH_KEY, 'new-refresh');
+    expect(mockStorage.store.get(ACCESS_KEY)).toBe('new-token');
+    expect(mockStorage.store.get(REFRESH_KEY)).toBe('new-refresh');
+
+    // localStorage should NOT have tokens (StorageService branch skips it)
+    expect(localStorage.getItem(ACCESS_KEY)).toBeNull();
+  });
+
+  it('silentRefresh reads from StorageService when provided', async () => {
+    const futureExpiry = Date.now() + 3600_000;
+    mockStorage.store.set(ACCESS_KEY, 'cached-token');
+    mockStorage.store.set(EXPIRY_KEY, String(futureExpiry));
+    mockStorage.store.set(REFRESH_KEY, 'refresh-token');
+
+    const auth = createAuth({ storage: mockStorage });
+    const result = await auth.silentRefresh();
+
+    expect(result).toBe('cached-token');
+    expect(auth.isAuthenticated()).toBe(true);
+    expect(mockStorage.get).toHaveBeenCalledWith(ACCESS_KEY);
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+
+  it('silentRefresh falls back to cloud function when StorageService token is expired', async () => {
+    mockStorage.store.set(ACCESS_KEY, 'old-token');
+    mockStorage.store.set(EXPIRY_KEY, String(Date.now() - 1000));
+    mockStorage.store.set(REFRESH_KEY, 'my-refresh');
+
+    (globalThis.fetch as Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ access_token: 'fresh-token', expires_in: 3600 }),
+    });
+
+    const auth = createAuth({ storage: mockStorage });
+    const result = await auth.silentRefresh();
+
+    expect(result).toBe('fresh-token');
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      TOKEN_URL,
+      expect.objectContaining({
+        body: JSON.stringify({ action: 'refresh', refresh_token: 'my-refresh' }),
+      }),
+    );
+  });
+
+  it('invalidateToken deletes access token/expiry from StorageService, keeps refresh token', async () => {
+    const futureExpiry = Date.now() + 3600_000;
+    mockStorage.store.set(ACCESS_KEY, 'active-token');
+    mockStorage.store.set(EXPIRY_KEY, String(futureExpiry));
+    mockStorage.store.set(REFRESH_KEY, 'refresh-token');
+
+    const auth = createAuth({ storage: mockStorage });
+    await auth.silentRefresh();
+    expect(auth.isAuthenticated()).toBe(true);
+
+    auth.invalidateToken();
+
+    expect(auth.isAuthenticated()).toBe(false);
+    expect(mockStorage.delete).toHaveBeenCalledWith(ACCESS_KEY);
+    expect(mockStorage.delete).toHaveBeenCalledWith(EXPIRY_KEY);
+    expect(mockStorage.delete).not.toHaveBeenCalledWith(REFRESH_KEY);
+    expect(mockStorage.store.has(REFRESH_KEY)).toBe(true);
+  });
+
+  it('disconnect clears all tokens from StorageService (code flow)', async () => {
+    const futureExpiry = Date.now() + 3600_000;
+    mockStorage.store.set(ACCESS_KEY, 'active-token');
+    mockStorage.store.set(EXPIRY_KEY, String(futureExpiry));
+    mockStorage.store.set(REFRESH_KEY, 'refresh-token');
+
+    const auth = createAuth({ storage: mockStorage });
+    await auth.silentRefresh();
+
+    auth.disconnect();
+
+    expect(auth.isAuthenticated()).toBe(false);
+    expect(mockStorage.delete).toHaveBeenCalledWith(REFRESH_KEY);
+    expect(mockStorage.delete).toHaveBeenCalledWith(ACCESS_KEY);
+    expect(mockStorage.delete).toHaveBeenCalledWith(EXPIRY_KEY);
+  });
+
+  it('silentRefresh clears StorageService tokens on 401 from cloud function', async () => {
+    mockStorage.store.set(ACCESS_KEY, 'old');
+    mockStorage.store.set(EXPIRY_KEY, '0');
+    mockStorage.store.set(REFRESH_KEY, 'revoked-token');
+
+    (globalThis.fetch as Mock).mockResolvedValueOnce({
+      ok: false,
+      status: 401,
+      json: async () => ({ error: 'invalid_grant' }),
+    });
+
+    const auth = createAuth({ storage: mockStorage });
+    const result = await auth.silentRefresh();
+
+    expect(result).toBeNull();
+    expect(mockStorage.delete).toHaveBeenCalledWith(REFRESH_KEY);
+    expect(mockStorage.delete).toHaveBeenCalledWith(ACCESS_KEY);
+    expect(mockStorage.delete).toHaveBeenCalledWith(EXPIRY_KEY);
   });
 });

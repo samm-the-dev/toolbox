@@ -9,6 +9,7 @@
  */
 
 import { createGoogleAuth, type GoogleAuth } from './google-oauth';
+import type { StorageService } from './storage-service/types';
 
 export type { GoogleAuth } from './google-oauth';
 
@@ -27,6 +28,8 @@ export interface DriveSyncConfig<T> {
   logPrefix?: string;
   /** Validate/migrate loaded data to the expected shape */
   sanitize: (data: T) => T;
+  /** Optional async storage backend for token persistence. Passed through to GoogleAuth when creating an internal auth instance. */
+  storage?: StorageService;
 }
 
 export interface DriveSync<T> {
@@ -58,6 +61,7 @@ export function createDriveSync<T>(config: DriveSyncConfig<T>): DriveSync<T> {
       appId: config.appId ?? '',
       storageKeyPrefix: config.storageKeyPrefix ?? '',
       logPrefix,
+      storage: config.storage,
     });
 
   // --- Drive file operations ---

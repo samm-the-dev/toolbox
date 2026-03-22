@@ -55,6 +55,65 @@ function createAuth(overrides: Partial<GoogleAuthConfig> = {}) {
   });
 }
 
+describe('getAuthLevel', () => {
+  beforeEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+    localStorage.clear();
+    setupGoogleGlobal();
+  });
+
+  it('returns 0 when localStorage throws', () => {
+    vi.stubGlobal('localStorage', {
+      setItem: () => { throw new Error('SecurityError'); },
+      getItem: () => null,
+      removeItem: () => {},
+      clear: () => {},
+    });
+
+    const auth = createAuth();
+    expect(auth.getAuthLevel()).toBe(0);
+  });
+
+  it('returns 1 when clientId is falsy', () => {
+    const auth = createAuth({ clientId: '' });
+    expect(auth.getAuthLevel()).toBe(1);
+  });
+
+  it('returns 1 when google.accounts.oauth2 is unavailable', () => {
+    delete (globalThis as Record<string, unknown>).google;
+    const auth = createAuth();
+    expect(auth.getAuthLevel()).toBe(1);
+  });
+
+  it('returns 1 in code flow when no refresh token is stored', () => {
+    const auth = createAuth();
+    expect(auth.getAuthLevel()).toBe(1);
+  });
+
+  it('returns 3 in code flow when a refresh token exists in localStorage', () => {
+    localStorage.setItem(REFRESH_KEY, 'stored-refresh');
+    const auth = createAuth();
+    expect(auth.getAuthLevel()).toBe(3);
+  });
+
+  it('returns 2 in implicit flow when an access token is held in memory', async () => {
+    const auth = createAuth({ tokenExchangeUrl: '' });
+    auth.initAuth();
+
+    const p = auth.requestAccessToken('consent');
+    mockTokenClient.callback({ access_token: 'mem-token', expires_in: 3600 });
+    await p;
+
+    expect(auth.getAuthLevel()).toBe(2);
+  });
+
+  it('returns 1 in implicit flow when no access token is present', () => {
+    const auth = createAuth({ tokenExchangeUrl: '' });
+    expect(auth.getAuthLevel()).toBe(1);
+  });
+});
+
 describe('getHeaders', () => {
   beforeEach(() => {
     vi.restoreAllMocks();

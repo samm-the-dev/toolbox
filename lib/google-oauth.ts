@@ -77,6 +77,10 @@ export function createGoogleAuth(config: GoogleAuthConfig): GoogleAuth {
    * 1 = localStorage only (no cloud sync possible)
    * 2 = OAuth popup sync (tokens lost on refresh)
    * 3 = Persistent auth via Cloud Function (silent reconnect)
+   *
+   * This is synchronous, so it reads directly from localStorage even when a
+   * StorageService is configured. This works because the OPFS adapter mirrors
+   * all writes to localStorage under the same keys (see opfs-adapter.ts).
    */
   function getAuthLevel(): 0 | 1 | 2 | 3 {
     try {

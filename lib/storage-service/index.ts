@@ -18,17 +18,23 @@ import { createOpfsAdapter } from './opfs-adapter';
 import { createLocalStorageAdapter } from './localstorage-adapter';
 
 async function isOpfsAvailable(): Promise<boolean> {
+  let dir: FileSystemDirectoryHandle | undefined;
+  let writable: FileSystemWritableFileStream | undefined;
+  const probe = '__storage_service_probe__';
   try {
-    const dir = await navigator.storage.getDirectory();
-    // Verify write access with a probe file
-    const probe = '__storage_service_probe__';
+    dir = await navigator.storage.getDirectory();
     const handle = await dir.getFileHandle(probe, { create: true });
-    const writable = await handle.createWritable();
+    writable = await handle.createWritable();
     await writable.write('1');
     await writable.close();
+    writable = undefined;
     await dir.removeEntry(probe);
     return true;
   } catch {
+    // Abort the stream if it was opened but not closed
+    try { await writable?.abort(); } catch { /* ignore */ }
+    // Best-effort cleanup of the probe file
+    try { await dir?.removeEntry(probe); } catch { /* ignore */ }
     return false;
   }
 }

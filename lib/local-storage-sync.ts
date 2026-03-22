@@ -18,7 +18,15 @@ export interface LocalStorageConfig<T> {
   version: number;
   sanitize: (data: T) => T;
   createDefault: () => T;
-  /** Optional async storage backend. When provided, save/clear delegate to it. */
+  /**
+   * Optional async storage backend. When provided, saveToLocal/clearLocal
+   * delegate writes/deletes to StorageService instead of raw localStorage.
+   *
+   * loadFromLocal always reads from localStorage synchronously (for instant
+   * mount). This works because the OPFS adapter mirrors every write to
+   * localStorage under the same key. If a custom adapter is used that does
+   * NOT mirror to localStorage, loadFromLocal will return stale/default data.
+   */
   storage?: StorageService;
 }
 

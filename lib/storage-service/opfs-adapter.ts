@@ -2,44 +2,32 @@
  * OPFS-backed StorageService adapter.
  *
  * Uses the Origin Private File System async API (getFile / createWritable)
- * for durable persistence. Writes are mirrored to localStorage so other
- * code paths (e.g., legacy sync readers) can access data synchronously.
- *
- * A BroadcastChannel named 'storage-service' is used for cross-tab
- * invalidation: when one tab writes/deletes/clears, other tabs receive
- * the event and can react accordingly.
+ * for durable persistence. All files are scoped to a `storage-service/`
+ * subdirectory to avoid collisions with other OPFS consumers. Writes are
+ * mirrored to localStorage so other code paths (e.g., legacy sync readers)
+ * can access data synchronously.
  */
 
 import type { StorageService, StorageServiceOptions } from './types';
 
-interface InvalidationMessage {
-  type: 'set' | 'delete' | 'clear';
-  key?: string;
-}
+/** Fixed OPFS subdirectory to isolate StorageService files. */
+const OPFS_DIR = 'storage-service';
 
 export function createOpfsAdapter(opts: StorageServiceOptions = {}): StorageService {
   const prefix = opts.prefix ?? '';
   const logPrefix = opts.logPrefix ?? '';
-  const channel = new BroadcastChannel('storage-service');
 
   function prefixedKey(key: string): string {
     return prefix ? `${prefix}:${key}` : key;
   }
 
   function opfsFileName(key: string): string {
-    return prefixedKey(key) + '.json';
-  }
-
-  function broadcast(msg: InvalidationMessage): void {
-    try {
-      channel.postMessage(msg);
-    } catch {
-      // Swallow -- broadcast is best-effort.
-    }
+    return encodeURIComponent(prefixedKey(key)) + '.json';
   }
 
   async function getDirectory(): Promise<FileSystemDirectoryHandle> {
-    return navigator.storage.getDirectory();
+    const root = await navigator.storage.getDirectory();
+    return root.getDirectoryHandle(OPFS_DIR, { create: true });
   }
 
   async function get<T>(key: string): Promise<T | null> {
@@ -78,8 +66,6 @@ export function createOpfsAdapter(opts: StorageServiceOptions = {}): StorageServ
     } catch {
       // Swallow -- mirror is best-effort.
     }
-
-    broadcast({ type: 'set', key: prefixedKey(key) });
   }
 
   async function del(key: string): Promise<void> {
@@ -97,8 +83,6 @@ export function createOpfsAdapter(opts: StorageServiceOptions = {}): StorageServ
     } catch {
       // Swallow.
     }
-
-    broadcast({ type: 'delete', key: prefixedKey(key) });
   }
 
   async function clear(): Promise<void> {
@@ -106,7 +90,7 @@ export function createOpfsAdapter(opts: StorageServiceOptions = {}): StorageServ
       const dir = await getDirectory();
       const entries: string[] = [];
       for await (const [name] of dir.entries()) {
-        const matchesPrefix = !prefix || name.startsWith(prefix + ':');
+        const matchesPrefix = !prefix || name.startsWith(encodeURIComponent(prefix + ':'));
         if (matchesPrefix && name.endsWith('.json')) {
           entries.push(name);
         }
@@ -133,8 +117,6 @@ export function createOpfsAdapter(opts: StorageServiceOptions = {}): StorageServ
     } catch {
       // Swallow.
     }
-
-    broadcast({ type: 'clear' });
   }
 
   async function keys(): Promise<string[]> {
@@ -142,9 +124,9 @@ export function createOpfsAdapter(opts: StorageServiceOptions = {}): StorageServ
     try {
       const dir = await getDirectory();
       for await (const [name] of dir.entries()) {
-        const matchesPrefix = !prefix || name.startsWith(prefix + ':');
+        const matchesPrefix = !prefix || name.startsWith(encodeURIComponent(prefix + ':'));
         if (matchesPrefix && name.endsWith('.json')) {
-          const raw = name.slice(0, -5); // strip .json
+          const raw = decodeURIComponent(name.slice(0, -5)); // strip .json, decode
           result.push(prefix ? raw.slice(prefix.length + 1) : raw);
         }
       }

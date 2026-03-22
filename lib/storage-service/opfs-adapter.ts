@@ -49,6 +49,14 @@ export function createOpfsAdapter(opts: StorageServiceOptions = {}): StorageServ
   async function set<T>(key: string, value: T): Promise<void> {
     const json = JSON.stringify(value);
 
+    // Mirror to localStorage first so sync readers (loadFromLocal) always
+    // see the latest value, even if the OPFS write fails.
+    try {
+      localStorage.setItem(prefixedKey(key), json);
+    } catch {
+      // Swallow -- mirror is best-effort.
+    }
+
     try {
       const dir = await getDirectory();
       const fileHandle = await dir.getFileHandle(opfsFileName(key), { create: true });
@@ -58,13 +66,6 @@ export function createOpfsAdapter(opts: StorageServiceOptions = {}): StorageServ
     } catch (e) {
       console.error(`${logPrefix} OPFS set failed for "${key}":`, e);
       throw e;
-    }
-
-    // localStorage write-through mirror
-    try {
-      localStorage.setItem(prefixedKey(key), json);
-    } catch {
-      // Swallow -- mirror is best-effort.
     }
   }
 

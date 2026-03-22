@@ -42,16 +42,18 @@ export function createLocalStorage<T extends { version: number }>(
   const { storageKey, logPrefix, version, sanitize, createDefault, storage } = config;
 
   function saveToLocal(data: T): void {
-    if (storage) {
-      storage.set(storageKey, data).catch((e) => {
-        console.error(`${logPrefix} Failed to save via StorageService:`, e);
-      });
-      return;
-    }
+    // Always write to localStorage synchronously so that loadFromLocal()
+    // (which reads synchronously) never sees stale data.
     try {
       localStorage.setItem(storageKey, JSON.stringify(data));
     } catch (e) {
       console.error(`${logPrefix} Failed to save to localStorage:`, e);
+    }
+
+    if (storage) {
+      storage.set(storageKey, data).catch((e) => {
+        console.error(`${logPrefix} Failed to save via StorageService:`, e);
+      });
     }
   }
 
@@ -74,16 +76,16 @@ export function createLocalStorage<T extends { version: number }>(
   }
 
   function clearLocal(): void {
-    if (storage) {
-      storage.delete(storageKey).catch((e) => {
-        console.error(`${logPrefix} Failed to clear via StorageService:`, e);
-      });
-      return;
-    }
     try {
       localStorage.removeItem(storageKey);
     } catch (e) {
       console.error(`${logPrefix} Failed to clear localStorage:`, e);
+    }
+
+    if (storage) {
+      storage.delete(storageKey).catch((e) => {
+        console.error(`${logPrefix} Failed to clear via StorageService:`, e);
+      });
     }
   }
 

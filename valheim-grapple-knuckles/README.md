@@ -4,20 +4,21 @@ Valheim (1.0.7, post-Deep North) BepInEx + HarmonyX + Jötunn (JVL) mod.
 
 Crafted by combining **Nord Knucklechains** (`FistGold`) + the vanilla
 **Grappling Hook** (`GrapplingHook`, added in the Deep North update) at the
-forge, into a new item, **Grapple Knuckles** (`FistGold_Grapple`), whose
-secondary attack launches the grapple hook instead of Knucklechains'
-normal special move.
+**Black Forge** (`blackforge`), into a new item, **Grapple Knuckles**
+(`FistGold_Grapple`), whose secondary attack launches the grapple hook
+instead of Knucklechains' normal special move.
 
 Grapple Knuckles is meant as an **alternative to enchanting** Knucklechains
 into Frostfire (`FistGold_FrostFire`) or Thunderblood
 (`FistGold_BloodLightning`), not a further upgrade of them — the recipe
 only accepts plain `FistGold`. You trade the elemental proc for the grapple
-utility, plus a flat pierce damage bonus to keep damage output in the same
-ballpark as the enchanted variants (see `GrappleAttackPatch.cs`). If you
-craft from an upgraded (higher-quality) Knucklechains, that quality level
-carries over to the Grapple Knuckles (see `QualityTransferPatch.cs`) —
-vanilla has no built-in mechanism for this since it's a different item, so
-that's a from-scratch Harmony patch on the crafting flow.
+utility, a pierce damage bonus on the grapple hit itself, a halved reload
+time, and a movement speed bonus, all deliberately tuned for fun over strict
+balance (see `GrappleAttackPatch.cs`). If you craft from an upgraded
+(higher-quality) Knucklechains, that quality level carries over to the
+Grapple Knuckles (see `QualityTransferPatch.cs`) — vanilla has no built-in
+mechanism for this since it's a different item, so that's a from-scratch
+Harmony patch on the crafting flow.
 
 ## How the secondary attack override works
 
@@ -25,27 +26,33 @@ Rather than Harmony-patching `Humanoid.StartAttack` and reimplementing the
 hook's raycast/pull/rope physics, `GrappleAttackPatch.cs` patches
 `ObjectDB.UpdateRegisters` (the same extension point other Valheim mods use
 to tweak item stats after load) and copies the real `GrapplingHook` item's
-own `m_secondaryAttack` config (its `Attack.m_attackProjectile`, stamina
-cost, and reload time) onto the clone's secondary attack slot. Since
-`m_attackProjectile` is what actually drives the vanilla `GrapplingPoint`
-component (rope `LineRenderer`, pull-toward-anchor logic), this reuses
-100% of vanilla's launch mechanic and VFX for free — no physics
-reimplementation, and no extra animation/VFX wiring needed beyond this.
-Knucklechains' own punch animation is deliberately left in place for the
-secondary attack (not overwritten with the hook's crossbow-draw
-animation), so the item plays as "punch, then a hook flies out."
+own `m_secondaryAttack` config (stamina cost and reload time) onto the
+clone's secondary attack slot, pointed at a **cloned** grapple projectile
+(see below). Since `m_attackProjectile` is what actually drives the vanilla
+`GrapplingPoint` component (rope `LineRenderer`, pull-toward-anchor logic),
+this reuses vanilla's launch mechanic and VFX wholesale — no physics
+reimplementation. The secondary attack also reuses the item's own
+primary/light attack animation trigger (`Attack.m_attackAnimation`,
+confirmed field), so it plays as "punch, then a hook flies out" rather than
+a crossbow-draw animation on bare fists.
 
-**This is implemented against facts confirmed from other open-source
-Valheim mods' compiled source** (see PR/commit description for sources),
-not a direct decompile of the game assembly, since I don't have access to
-your local Valheim install. The riskiest untested assumption: Valheim's
-attack-animation-event callback that fires the configured `Attack` is
-generic across weapon types, so Knucklechains' punch clip should still
-trigger the copied grapple `Attack` even though it wasn't authored for a
-crossbow. **Verify this in-game first** — if the secondary attack does
-nothing on impact, that assumption is the first thing to check (try
-temporarily copying `m_attackAnimation` from the hook's `Attack` too, to
-confirm whether it's an animation-event gating issue).
+**Not yet attempted: anchoring the rope's visual start point at the
+wrists.** That likely needs a custom attach-point Transform on the fist
+model and/or inspecting how `GrapplingPoint`/the projectile spawn actually
+picks its origin — real decompile work on your end, not something
+guessable from other mods' source.
+
+## Why the projectile is cloned, not reused directly
+
+`Projectile_GrapplingHook` (the vanilla hook's projectile GameObject) is
+the *same* prefab reference the real `GrapplingHook` item uses. Mutating
+its `Projectile.m_damage` (confirmed field) in place would buff vanilla
+hook throws for every player, modded or not. So `GrappleKnucklesPlugin.cs`
+clones it once via Jötunn's `PrefabManager.CreateClonedPrefab` (the
+confirmed, idiomatic API for cloning a vanilla prefab without touching the
+original), on `PrefabManager.OnVanillaPrefabsAvailable`, and
+`GrappleAttackPatch.cs` points the clone's secondary attack at that
+independent copy before adding the pierce bonus to it.
 
 ## Quality transfer on craft
 
@@ -64,32 +71,29 @@ different item from the input. So this patch:
 3. **Postfix** — find the newly crafted `FistGold_Grapple` and set its
    quality to match what was captured.
 
-## Damage balance
+## Damage / feel tuning
 
-`GrappleAttackPatch.cs` adds a flat `+40` base pierce damage
-(`SharedData.m_damages.m_pierce`, not `m_damagesPerLevel`, so it stays flat
-across quality levels rather than scaling) to compensate for the loss of
-Frostfire/Thunderblood's elemental damage. This number is a starting point
-for playtesting, not a researched balance target — the enchanted variants'
-real damage figures could only be corroborated via web search snippets, not
-a primary source, so treat both sides of this comparison as rough.
+All in `GrappleAttackPatch.cs`, all deliberately tuned for fun over strict
+balance, per explicit request:
 
-It also halves the grapple's reload time versus the vanilla hook
-(`ReloadTimeMultiplier = 0.5f`). Deliberately unbalanced, for fun.
+- **+40 pierce damage on the grapple projectile only** (`Projectile.m_damage.m_pierce`
+  on the cloned projectile, not the item's melee `m_damages`, so the fists'
+  regular punches are unaffected). Compensates for forgoing
+  Frostfire/Thunderblood's elemental damage. This number is a starting
+  point for playtesting, not a researched balance target — the enchanted
+  variants' real damage figures could only be corroborated via web search
+  snippets, not primary source.
+- **Reload time halved** vs. the vanilla hook (`ReloadTimeMultiplier = 0.5f`).
+- **+10% movement speed** while equipped (`SharedData.m_movementModifier`,
+  confirmed field — a flat additive fraction summed across all equipped
+  items, same mechanism as Wolf/Troll armor's speed penalty but positive
+  here).
 
-**Pending follow-up (see open tasks):** the pierce bonus currently applies
-to the item's base melee damage, which also buffs the fists' regular
-punches — the intent is to scope it to the grapple projectile hit only, but
-that requires cloning the projectile prefab first so we don't mutate the
-GameObject the vanilla Grappling Hook item shares. Also pending: switching
-the crafting station to Black Forge, reusing the light-attack animation for
-the secondary attack, and an optional movement speed buff — all blocked on
-one more round of fact verification.
-
-**Status:** item clone/recipe, attack-wiring, quality transfer, and the
-pierce bonus are all implemented. Untested in-game (no local Valheim
-install available in this environment) — treat this as a first pass to
-verify, not a finished/verified mod.
+**Status:** item clone/recipe, attack-wiring (including the cloned
+projectile, animation reuse, and Black Forge station), quality transfer,
+and all the damage/feel tuning above are implemented. Untested in-game (no
+local Valheim install available in this environment) — treat this as a
+first pass to verify, not a finished/verified mod.
 
 ## Dev environment setup
 
@@ -151,10 +155,12 @@ Copy the built `GrappleKnuckles.dll` into `<Valheim install>/BepInEx/plugins/Gra
 
 - `GrappleKnucklesPlugin.cs` - BepInEx plugin entrypoint; clones `FistGold` into
   `FistGold_Grapple` via Jötunn's `ItemManager`/`CustomItem`/`ItemConfig`,
-  with a recipe of `FistGold` + `GrapplingHook` at the forge.
+  with a recipe of `FistGold` + `GrapplingHook` at the Black Forge, and
+  clones `Projectile_GrapplingHook` via `PrefabManager.CreateClonedPrefab`.
 - `GrappleAttackPatch.cs` - Harmony patch on `ObjectDB.UpdateRegisters` that
-  wires the clone's secondary attack to the vanilla `GrapplingHook`'s
-  attack/projectile config, and adds the flat pierce damage bonus.
+  wires the clone's secondary attack to the cloned grapple projectile,
+  reuses the item's own attack animation, and applies the pierce/reload/
+  movement-speed tuning.
 - `QualityTransferPatch.cs` - Harmony patch on `InventoryGui.DoCrafting`
   that carries the source `FistGold`'s quality level onto the crafted
   `FistGold_Grapple`.

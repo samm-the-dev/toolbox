@@ -9,47 +9,47 @@ namespace GrappleKnuckles
     // Grappling Hook's stats) to copy the vanilla GrapplingHook's own
     // secondary-attack config onto our cloned item's secondary attack.
     //
-    // Confirmed facts this relies on (see research notes / PR description):
+    // Confirmed facts this relies on:
     //   - The vanilla Grappling Hook prefab is "GrapplingHook", not FistGold.
     //   - ItemDrop.ItemData.SharedData.m_secondaryAttack (type Attack) is the
     //     Attack instance that actually fires the grapple: it holds
     //     m_attackProjectile, which is what spawns/drives the real
     //     GrapplingPoint component (rope LineRenderer, pull-toward-anchor,
-    //     etc). By pointing our clone's secondary Attack at the same
-    //     projectile and stamina/reload numbers, vanilla's own attack
-    //     dispatch does the rest - no physics reimplementation needed.
-    //   - We deliberately do NOT copy m_attackAnimation: Knucklechains'
-    //     own secondary-attack punch animation is left in place, so the
-    //     item still reads as "knuckles punch, hook flies out" rather than
-    //     playing a crossbow-draw animation on bare fists. Valheim's attack
-    //     animations fire a generic animation-event callback that triggers
-    //     whatever Attack is configured on the weapon regardless of which
-    //     clip is playing, so this should still fire the projectile - but
-    //     this is the single biggest thing to verify in-game and the most
-    //     likely spot to need iteration if the hook doesn't launch.
+    //     etc). By pointing our clone's secondary Attack at a copy of that
+    //     projectile, vanilla's own attack dispatch does the rest - no
+    //     physics reimplementation needed.
+    //   - We reuse the item's own primary/light attack animation trigger
+    //     (Attack.m_attackAnimation, confirmed field) for the secondary
+    //     attack too, instead of Knucklechains' normal special-move
+    //     animation or the hook's crossbow-draw animation.
     //   - The vanilla hook projectile (Projectile_GrapplingHook) is a plain
-    //     Projectile component like an arrow/bolt, with real HitData
-    //     (~10 pierce, confirmed via community sources) - it already
-    //     damages Characters on impact, so no extra Character-hit patch is
-    //     needed to make grappling something "count" as a hit.
-    //
-    // This class also gives the clone a flat pierce damage bonus (base
-    // SharedData.m_damages.m_pierce only, not m_damagesPerLevel, so the
-    // bonus stays flat across quality levels rather than scaling): Grapple
-    // Knuckles is meant as an alternative to enchanting Knucklechains into
-    // Frostfire/Thunderblood, not a strict upgrade, so it trades the
-    // elemental proc for the grapple utility plus this bonus. The exact
-    // number is a starting point for playtesting, not a researched balance
-    // target - the enchanted variants' real damage figures could only be
-    // corroborated via unverified search snippets, not primary source.
+    //     Projectile component like an arrow/bolt, with its own damage in
+    //     Projectile.m_damage (confirmed field) - it already damages
+    //     Characters on impact, so no extra Character-hit patch is needed.
+    //   - We do NOT mutate Projectile_GrapplingHook directly: that GameObject
+    //     is the same one the vanilla GrapplingHook item references, so
+    //     changing its damage would leak into vanilla hook throws for every
+    //     player. Instead GrappleKnucklesPlugin clones it via Jötunn's
+    //     PrefabManager.CreateClonedPrefab (the confirmed, idiomatic way to
+    //     clone a vanilla prefab without touching the original) on
+    //     PrefabManager.OnVanillaPrefabsAvailable, and we point our clone's
+    //     Attack at that independent copy instead.
+    //   - SharedData.m_movementModifier (confirmed field) is a flat additive
+    //     fraction summed across all equipped items (e.g. -0.2 for a 20%
+    //     penalty, matching Wolf/Troll armor); a positive value here is a
+    //     speed bonus.
     [HarmonyPatch(typeof(ObjectDB), nameof(ObjectDB.UpdateRegisters))]
     internal static class ObjectDB_UpdateRegisters_GrapplePatch
     {
-        private const float PierceDamageBonus = 40f;
+        private const float ProjectilePierceDamageBonus = 40f;
 
         // Halved from vanilla on purpose - this mod is meant to be more fun
         // than balanced.
         private const float ReloadTimeMultiplier = 0.5f;
+
+        // +10% movement speed while equipped, deliberately unbalanced/for
+        // fun per explicit request.
+        private const float MovementSpeedBonus = 0.1f;
 
         private static bool _applied;
 
@@ -79,6 +79,14 @@ namespace GrappleKnuckles
                 return;
             }
 
+            var clonedProjectile = GrappleKnucklesPlugin.ClonedProjectile;
+            if (clonedProjectile == null)
+            {
+                // PrefabManager.OnVanillaPrefabsAvailable hasn't fired yet
+                // (or the clone failed); try again next call.
+                return;
+            }
+
             var hookItemData = hookPrefab.GetComponent<ItemDrop>()?.m_itemData;
             var clonedItemData = clonedPrefab.GetComponent<ItemDrop>()?.m_itemData;
 
@@ -97,23 +105,34 @@ namespace GrappleKnuckles
                 return;
             }
 
+            var projectileComponent = clonedProjectile.GetComponent<Projectile>();
+            if (projectileComponent != null)
+            {
+                projectileComponent.m_damage.m_pierce += ProjectilePierceDamageBonus;
+            }
+
             var clonedAttack = clonedItemData.m_shared.m_secondaryAttack ?? new Attack();
 
-            clonedAttack.m_attackProjectile = hookAttack.m_attackProjectile;
+            clonedAttack.m_attackProjectile = clonedProjectile;
             clonedAttack.m_attackStamina = hookAttack.m_attackStamina;
             clonedAttack.m_reloadTime = hookAttack.m_reloadTime * ReloadTimeMultiplier;
             clonedAttack.m_blockReloadTime = hookAttack.m_blockReloadTime;
 
+            if (clonedItemData.m_shared.m_attack != null)
+            {
+                clonedAttack.m_attackAnimation = clonedItemData.m_shared.m_attack.m_attackAnimation;
+            }
+
             clonedItemData.m_shared.m_secondaryAttack = clonedAttack;
 
-            clonedItemData.m_shared.m_damages.m_pierce += PierceDamageBonus;
+            clonedItemData.m_shared.m_movementModifier = MovementSpeedBonus;
 
             _applied = true;
 
             Logger.LogInfo(
-                $"Wired {GrappleKnucklesPlugin.ClonedItemPrefabName}'s secondary attack to " +
-                $"{GrappleKnucklesPlugin.VanillaHookPrefabName}'s grapple projectile " +
-                $"({ReloadTimeMultiplier:P0} reload time), +{PierceDamageBonus} base pierce damage.");
+                $"Wired {GrappleKnucklesPlugin.ClonedItemPrefabName}'s secondary attack to a cloned " +
+                $"{GrappleKnucklesPlugin.VanillaHookPrefabName} projectile ({ReloadTimeMultiplier:P0} reload " +
+                $"time, +{ProjectilePierceDamageBonus} projectile pierce damage), +{MovementSpeedBonus:P0} movement speed.");
         }
     }
 }

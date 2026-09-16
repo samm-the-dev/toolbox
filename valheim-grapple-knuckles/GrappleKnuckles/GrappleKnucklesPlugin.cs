@@ -42,16 +42,21 @@ namespace GrappleKnuckles
         {
             try
             {
+                // Grapple Knuckles is framed as an alternative to enchanting
+                // Knucklechains into Frostfire/Thunderblood, not a further
+                // upgrade of them: it trades the elemental proc for the
+                // grapple secondary attack plus a flat pierce bonus (see
+                // GrappleAttackPatch). So the recipe consumes the plain
+                // FistGold, not an enchanted variant.
                 var itemConfig = new ItemConfig
                 {
                     Name = "$item_fistgold_grapple",
                     Description = "$item_fistgold_grapple_description",
-                    CraftingStation = "piece_workbench",
+                    CraftingStation = "piece_forge",
                     Requirements = new[]
                     {
-                        new RequirementConfig { Item = "FistGold", Amount = 1 },
-                        new RequirementConfig { Item = "Chain", Amount = 5 },
-                        new RequirementConfig { Item = "Iron", Amount = 10 },
+                        new RequirementConfig { Item = SourceItemPrefabName, Amount = 1 },
+                        new RequirementConfig { Item = VanillaHookPrefabName, Amount = 1 },
                     },
                 };
 

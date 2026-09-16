@@ -2,10 +2,22 @@
 
 Valheim (1.0.7, post-Deep North) BepInEx + HarmonyX + Jötunn (JVL) mod.
 
-Clones **Nord Knucklechains** (`FistGold`) into a new item, **Grapple
-Knuckles** (`FistGold_Grapple`), and replaces its secondary attack with a
-launch of the vanilla Grappling Hook (`GrapplingHook`, added in the Deep
-North update).
+Crafted by combining **Nord Knucklechains** (`FistGold`) + the vanilla
+**Grappling Hook** (`GrapplingHook`, added in the Deep North update) at the
+forge, into a new item, **Grapple Knuckles** (`FistGold_Grapple`), whose
+secondary attack launches the grapple hook instead of Knucklechains'
+normal special move.
+
+Grapple Knuckles is meant as an **alternative to enchanting** Knucklechains
+into Frostfire (`FistGold_FrostFire`) or Thunderblood
+(`FistGold_BloodLightning`), not a further upgrade of them — the recipe
+only accepts plain `FistGold`. You trade the elemental proc for the grapple
+utility, plus a flat pierce damage bonus to keep damage output in the same
+ballpark as the enchanted variants (see `GrappleAttackPatch.cs`). If you
+craft from an upgraded (higher-quality) Knucklechains, that quality level
+carries over to the Grapple Knuckles (see `QualityTransferPatch.cs`) —
+vanilla has no built-in mechanism for this since it's a different item, so
+that's a from-scratch Harmony patch on the crafting flow.
 
 ## How the secondary attack override works
 
@@ -35,9 +47,37 @@ nothing on impact, that assumption is the first thing to check (try
 temporarily copying `m_attackAnimation` from the hook's `Attack` too, to
 confirm whether it's an animation-event gating issue).
 
-**Status:** item clone/recipe and the attack-wiring patch are implemented.
-Untested in-game (no local Valheim install available in this environment) —
-treat this as a first pass to verify, not a finished/verified mod.
+## Quality transfer on craft
+
+`QualityTransferPatch.cs` patches `InventoryGui.DoCrafting(Player)` (private,
+confirmed via a decompile). Vanilla's quality-carry mechanism
+(`m_craftUpgradeItem`) only applies when re-crafting a recipe whose output
+matches an item the player already owns — the in-place "upgrade at the
+forge" case — and never fires for a recipe like ours where the output is a
+different item from the input. So this patch:
+
+1. **Prefix** — if the recipe being crafted is ours, find the player's
+   `FistGold` (highest quality, if they somehow have more than one — vanilla
+   doesn't expose which specific instance gets consumed) and remember its
+   quality.
+2. Let the original method run (crafts at quality 1, as normal).
+3. **Postfix** — find the newly crafted `FistGold_Grapple` and set its
+   quality to match what was captured.
+
+## Damage balance
+
+`GrappleAttackPatch.cs` adds a flat `+40` base pierce damage
+(`SharedData.m_damages.m_pierce`, not `m_damagesPerLevel`, so it stays flat
+across quality levels rather than scaling) to compensate for the loss of
+Frostfire/Thunderblood's elemental damage. This number is a starting point
+for playtesting, not a researched balance target — the enchanted variants'
+real damage figures could only be corroborated via web search snippets, not
+a primary source, so treat both sides of this comparison as rough.
+
+**Status:** item clone/recipe, attack-wiring, quality transfer, and the
+pierce bonus are all implemented. Untested in-game (no local Valheim
+install available in this environment) — treat this as a first pass to
+verify, not a finished/verified mod.
 
 ## Dev environment setup
 
@@ -58,7 +98,7 @@ BepInEx binaries are (or should be) committed to this repo.
    `BepInEx/plugins`.
 4. **Reference assemblies for compiling against.** Copy the following DLLs
    from your local Valheim install into `GrappleKnuckles/Libraries/` (this
-   folder is gitignored â€” never commit them):
+   folder is gitignored — never commit them):
    - `valheim_Data/Managed/assembly_valheim.dll`
    - `valheim_Data/Managed/assembly_lib.dll`
    - `valheim_Data/Managed/assembly_utils.dll`
@@ -98,9 +138,13 @@ Copy the built `GrappleKnuckles.dll` into `<Valheim install>/BepInEx/plugins/Gra
 ## Project layout
 
 - `GrappleKnucklesPlugin.cs` - BepInEx plugin entrypoint; clones `FistGold` into
-  `FistGold_Grapple` via Jötunn's `ItemManager`/`CustomItem`/`ItemConfig`.
+  `FistGold_Grapple` via Jötunn's `ItemManager`/`CustomItem`/`ItemConfig`,
+  with a recipe of `FistGold` + `GrapplingHook` at the forge.
 - `GrappleAttackPatch.cs` - Harmony patch on `ObjectDB.UpdateRegisters` that
   wires the clone's secondary attack to the vanilla `GrapplingHook`'s
-  attack/projectile config.
+  attack/projectile config, and adds the flat pierce damage bonus.
+- `QualityTransferPatch.cs` - Harmony patch on `InventoryGui.DoCrafting`
+  that carries the source `FistGold`'s quality level onto the crafted
+  `FistGold_Grapple`.
 - `manifest.json` - Thunderstore package manifest.
 - `Libraries/` - local-only reference DLLs (gitignored, not committed).

@@ -27,9 +27,26 @@ namespace GrappleKnuckles
     //     clip is playing, so this should still fire the projectile - but
     //     this is the single biggest thing to verify in-game and the most
     //     likely spot to need iteration if the hook doesn't launch.
+    //   - The vanilla hook projectile (Projectile_GrapplingHook) is a plain
+    //     Projectile component like an arrow/bolt, with real HitData
+    //     (~10 pierce, confirmed via community sources) - it already
+    //     damages Characters on impact, so no extra Character-hit patch is
+    //     needed to make grappling something "count" as a hit.
+    //
+    // This class also gives the clone a flat pierce damage bonus (base
+    // SharedData.m_damages.m_pierce only, not m_damagesPerLevel, so the
+    // bonus stays flat across quality levels rather than scaling): Grapple
+    // Knuckles is meant as an alternative to enchanting Knucklechains into
+    // Frostfire/Thunderblood, not a strict upgrade, so it trades the
+    // elemental proc for the grapple utility plus this bonus. The exact
+    // number is a starting point for playtesting, not a researched balance
+    // target - the enchanted variants' real damage figures could only be
+    // corroborated via unverified search snippets, not primary source.
     [HarmonyPatch(typeof(ObjectDB), nameof(ObjectDB.UpdateRegisters))]
     internal static class ObjectDB_UpdateRegisters_GrapplePatch
     {
+        private const float PierceDamageBonus = 40f;
+
         private static bool _applied;
 
         private static void Postfix(ObjectDB __instance)
@@ -84,11 +101,15 @@ namespace GrappleKnuckles
             clonedAttack.m_blockReloadTime = hookAttack.m_blockReloadTime;
 
             clonedItemData.m_shared.m_secondaryAttack = clonedAttack;
+
+            clonedItemData.m_shared.m_damages.m_pierce += PierceDamageBonus;
+
             _applied = true;
 
             Logger.LogInfo(
                 $"Wired {GrappleKnucklesPlugin.ClonedItemPrefabName}'s secondary attack to " +
-                $"{GrappleKnucklesPlugin.VanillaHookPrefabName}'s grapple projectile.");
+                $"{GrappleKnucklesPlugin.VanillaHookPrefabName}'s grapple projectile, " +
+                $"+{PierceDamageBonus} base pierce damage.");
         }
     }
 }

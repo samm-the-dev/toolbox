@@ -1,0 +1,9 @@
+bin/
+obj/
+*.user
+.vs/
+
+# Vanilla + publicized game/BepInEx assemblies you copy in locally for
+# compiling against. Never commit third-party/game binaries.
+GrappleKnuckles/Libraries/*.dll
+!GrappleKnuckles/Libraries/.gitkeep

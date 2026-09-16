@@ -47,6 +47,10 @@ namespace GrappleKnuckles
     {
         private const float PierceDamageBonus = 40f;
 
+        // Halved from vanilla on purpose - this mod is meant to be more fun
+        // than balanced.
+        private const float ReloadTimeMultiplier = 0.5f;
+
         private static bool _applied;
 
         private static void Postfix(ObjectDB __instance)
@@ -97,7 +101,7 @@ namespace GrappleKnuckles
 
             clonedAttack.m_attackProjectile = hookAttack.m_attackProjectile;
             clonedAttack.m_attackStamina = hookAttack.m_attackStamina;
-            clonedAttack.m_reloadTime = hookAttack.m_reloadTime;
+            clonedAttack.m_reloadTime = hookAttack.m_reloadTime * ReloadTimeMultiplier;
             clonedAttack.m_blockReloadTime = hookAttack.m_blockReloadTime;
 
             clonedItemData.m_shared.m_secondaryAttack = clonedAttack;
@@ -108,8 +112,8 @@ namespace GrappleKnuckles
 
             Logger.LogInfo(
                 $"Wired {GrappleKnucklesPlugin.ClonedItemPrefabName}'s secondary attack to " +
-                $"{GrappleKnucklesPlugin.VanillaHookPrefabName}'s grapple projectile, " +
-                $"+{PierceDamageBonus} base pierce damage.");
+                $"{GrappleKnucklesPlugin.VanillaHookPrefabName}'s grapple projectile " +
+                $"({ReloadTimeMultiplier:P0} reload time), +{PierceDamageBonus} base pierce damage.");
         }
     }
 }

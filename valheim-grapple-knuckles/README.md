@@ -74,6 +74,18 @@ for playtesting, not a researched balance target — the enchanted variants'
 real damage figures could only be corroborated via web search snippets, not
 a primary source, so treat both sides of this comparison as rough.
 
+It also halves the grapple's reload time versus the vanilla hook
+(`ReloadTimeMultiplier = 0.5f`). Deliberately unbalanced, for fun.
+
+**Pending follow-up (see open tasks):** the pierce bonus currently applies
+to the item's base melee damage, which also buffs the fists' regular
+punches — the intent is to scope it to the grapple projectile hit only, but
+that requires cloning the projectile prefab first so we don't mutate the
+GameObject the vanilla Grappling Hook item shares. Also pending: switching
+the crafting station to Black Forge, reusing the light-attack animation for
+the secondary attack, and an optional movement speed buff — all blocked on
+one more round of fact verification.
+
 **Status:** item clone/recipe, attack-wiring, quality transfer, and the
 pierce bonus are all implemented. Untested in-game (no local Valheim
 install available in this environment) — treat this as a first pass to

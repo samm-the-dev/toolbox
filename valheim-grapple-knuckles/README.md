@@ -95,6 +95,67 @@ and all the damage/feel tuning above are implemented. Untested in-game (no
 local Valheim install available in this environment) — treat this as a
 first pass to verify, not a finished/verified mod.
 
+## Fenris Mage armor (`FenrisMageArmor.cs`)
+
+A second, independent item set: a "fast mage" hybrid cloned from vanilla
+**Fenris armor** (`ArmorFenringChest` + `ArmorFenringLegs` — the only two
+real Fenris prefabs; wiki claims of a third Hood piece don't correspond to
+anything in the confirmed vanilla prefab list), scaled up toward Mistlands
+power level. Fenris turned out to actually be Mountain-tier (same as Wolf
+Armor), not Mistlands-tier as originally assumed — a correction worth
+knowing if you go looking for it in-game.
+
+Design, per piece:
+- **Armor and weight scaled relative to whatever the clone inherits from
+  vanilla Fenris** (`ArmorScale = 1.6f`, `WeightScale = 1.2f`), rather than
+  hardcoded absolute numbers — real Fenris/Padded/Carapace armor values were
+  only ever community-sourced, never primary-confirmed (Jötunn's item list
+  has no armor/weight columns at all), so scaling relative to the real
+  inherited value stays correct regardless of what that baseline actually
+  is.
+- **+20% Eitr regen per piece** (`SE_Stats.m_eitrRegenMultiplier`, confirmed
+  field), deliberately less than the real Mistlands "Eitr-weave" mage set's
+  per-piece bonus (+40% on its own robe/trousers) — a trade-off, not a
+  straight mage-armor clone.
+- **+5% movement speed per piece** (`SharedData.m_movementModifier`,
+  confirmed field, same mechanism used on Grapple Knuckles), +10% total for
+  the full set.
+- **+25% stamina regen set bonus** when both pieces are worn
+  (`SE_Stats.m_staminaRegenMultiplier` on a custom set-bonus effect) — covers
+  both dodging and melee swings, so the build can hold its own in melee with
+  some proficiency rather than being a pure kiting caster.
+
+How the set bonus is wired: `ItemDrop.ItemData.SharedData` has
+`m_setName`/`m_setSize`/`m_setStatusEffect` fields that drive full-set
+bonuses entirely in vanilla code (`Humanoid.UpdateEquipmentStatusEffects()`,
+confirmed via decompile and cross-checked against a real mod's Harmony
+transpiler targeting that exact method) — no Harmony patch needed here,
+just setting matching fields on both cloned pieces. The clone inherits
+vanilla Fenris's own set fields by default, so both pieces explicitly
+override them to a new `FenrisMageSet` (size 2) to detach from the real
+Fenris Blessing set bonus rather than accidentally combining with it.
+
+Custom status effects (`SE_Stats`) are created via
+`ScriptableObject.CreateInstance<SE_Stats>()` and registered through
+Jötunn's `ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(...))`
+— confirmed as the real, Jötunn-documented path, with a working precedent
+in `aedenthorn/ValheimMods`' `CustomArmorStats` plugin doing the exact same
+thing.
+
+**Also researched but not used:** a set bonus of -10% dodge stamina cost /
++5% elemental damage was considered first. Both map to real confirmed
+fields (`SE_Stats.m_dodgeStaminaUseModifier`, real vanilla precedent: the
+Deep North Vanguard set's -20% dodge stamina; and
+`SE_Stats.m_percentigeDamageModifiers`, a per-damage-type struct — set only
+the elemental sub-fields to get an elemental-only bonus, unlike Yagluth's
+Forsaken Power which is a flat +10% to all damage types, not elemental-only
+despite the memory that prompted checking it). Noted here in case the
+stamina-regen version doesn't feel right in practice and this is worth
+revisiting.
+
+**Status:** implemented, untested in-game, same caveats as the rest of this
+mod.
+
 ## Dev environment setup
 
 You need your own legally-owned copy of Valheim; none of the game or
@@ -164,5 +225,10 @@ Copy the built `GrappleKnuckles.dll` into `<Valheim install>/BepInEx/plugins/Gra
 - `QualityTransferPatch.cs` - Harmony patch on `InventoryGui.DoCrafting`
   that carries the source `FistGold`'s quality level onto the crafted
   `FistGold_Grapple`.
+- `FenrisMageArmor.cs` - clones `ArmorFenringChest`/`ArmorFenringLegs` into
+  a fast-mage hybrid set, creating and registering custom `SE_Stats` status
+  effects for per-piece Eitr regen and the set's stamina regen bonus. No
+  Harmony patch needed for this one - set bonuses are stock vanilla
+  behavior once the right `SharedData` fields are set.
 - `manifest.json` - Thunderstore package manifest.
 - `Libraries/` - local-only reference DLLs (gitignored, not committed).

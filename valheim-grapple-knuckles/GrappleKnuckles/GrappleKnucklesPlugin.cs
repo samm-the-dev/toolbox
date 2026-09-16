@@ -34,6 +34,7 @@ namespace GrappleKnuckles
         private void Awake()
         {
             ItemManager.OnItemsRegistered += CloneKnucklechains;
+            ItemManager.OnItemsRegistered += FenrisMageArmor.Clone;
             PrefabManager.OnVanillaPrefabsAvailable += CloneProjectile;
 
             _harmony.PatchAll();
@@ -44,6 +45,7 @@ namespace GrappleKnuckles
         private void OnDestroy()
         {
             ItemManager.OnItemsRegistered -= CloneKnucklechains;
+            ItemManager.OnItemsRegistered -= FenrisMageArmor.Clone;
             PrefabManager.OnVanillaPrefabsAvailable -= CloneProjectile;
             _harmony?.UnpatchSelf();
         }

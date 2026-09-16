@@ -4,12 +4,40 @@ Valheim (1.0.7, post-Deep North) BepInEx + HarmonyX + Jötunn (JVL) mod.
 
 Clones **Nord Knucklechains** (`FistGold`) into a new item, **Grapple
 Knuckles** (`FistGold_Grapple`), and replaces its secondary attack with a
-launch of the vanilla Grappling Hook.
+launch of the vanilla Grappling Hook (`GrapplingHook`, added in the Deep
+North update).
 
-**Status: work in progress.** The item clone/recipe side is implemented.
-The Harmony patch that redirects the secondary attack to the grapple
-mechanic is a stub (`GrappleAttackPatch.cs`) pending confirmation of the
-vanilla hook's internal implementation — see that file for what's needed.
+## How the secondary attack override works
+
+Rather than Harmony-patching `Humanoid.StartAttack` and reimplementing the
+hook's raycast/pull/rope physics, `GrappleAttackPatch.cs` patches
+`ObjectDB.UpdateRegisters` (the same extension point other Valheim mods use
+to tweak item stats after load) and copies the real `GrapplingHook` item's
+own `m_secondaryAttack` config (its `Attack.m_attackProjectile`, stamina
+cost, and reload time) onto the clone's secondary attack slot. Since
+`m_attackProjectile` is what actually drives the vanilla `GrapplingPoint`
+component (rope `LineRenderer`, pull-toward-anchor logic), this reuses
+100% of vanilla's launch mechanic and VFX for free — no physics
+reimplementation, and no extra animation/VFX wiring needed beyond this.
+Knucklechains' own punch animation is deliberately left in place for the
+secondary attack (not overwritten with the hook's crossbow-draw
+animation), so the item plays as "punch, then a hook flies out."
+
+**This is implemented against facts confirmed from other open-source
+Valheim mods' compiled source** (see PR/commit description for sources),
+not a direct decompile of the game assembly, since I don't have access to
+your local Valheim install. The riskiest untested assumption: Valheim's
+attack-animation-event callback that fires the configured `Attack` is
+generic across weapon types, so Knucklechains' punch clip should still
+trigger the copied grapple `Attack` even though it wasn't authored for a
+crossbow. **Verify this in-game first** — if the secondary attack does
+nothing on impact, that assumption is the first thing to check (try
+temporarily copying `m_attackAnimation` from the hook's `Attack` too, to
+confirm whether it's an animation-event gating issue).
+
+**Status:** item clone/recipe and the attack-wiring patch are implemented.
+Untested in-game (no local Valheim install available in this environment) —
+treat this as a first pass to verify, not a finished/verified mod.
 
 ## Dev environment setup
 
@@ -46,12 +74,14 @@ BepInEx binaries are (or should be) committed to this repo.
    `Jotunn.PatcherModules`, or standalone `AssemblyPublicizer`) over
    `assembly_valheim.dll` first and reference the publicized copy instead.
 
-5. **Inspect the decompiled game code** with
-   [ILSpy](https://github.com/icsharpcode/ILSpy) or dnSpy against
-   `assembly_valheim.dll` to confirm the Grappling Hook's actual prefab
-   name and launch method before finishing `GrappleAttackPatch.cs` (see the
-   TODO block in that file). This step has to happen on your machine
-   against your own game files.
+5. **Recommended: confirm against a decompile of your own game files**
+   with [ILSpy](https://github.com/icsharpcode/ILSpy) or dnSpy against
+   `assembly_valheim.dll`. `GrappleAttackPatch.cs` was written from facts
+   confirmed in other open-source mods' compiled source (see that file's
+   comments), not a direct decompile, so it's worth cross-checking
+   `ItemDrop.ItemData.SharedData.m_secondaryAttack` on the `GrapplingHook`
+   prefab and the `Attack`/`GrapplingPoint` classes against your own
+   decompile before relying on this in a real playthrough.
 
 ## Build
 
@@ -69,7 +99,8 @@ Copy the built `GrappleKnuckles.dll` into `<Valheim install>/BepInEx/plugins/Gra
 
 - `GrappleKnucklesPlugin.cs` - BepInEx plugin entrypoint; clones `FistGold` into
   `FistGold_Grapple` via Jötunn's `ItemManager`/`CustomItem`/`ItemConfig`.
-- `GrappleAttackPatch.cs` - Harmony patch for the secondary-attack override
-  (stub, see file).
+- `GrappleAttackPatch.cs` - Harmony patch on `ObjectDB.UpdateRegisters` that
+  wires the clone's secondary attack to the vanilla `GrapplingHook`'s
+  attack/projectile config.
 - `manifest.json` - Thunderstore package manifest.
 - `Libraries/` - local-only reference DLLs (gitignored, not committed).

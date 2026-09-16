@@ -4,7 +4,6 @@ using Jotunn.Configs;
 using Jotunn.Entities;
 using Jotunn.Managers;
 using Jotunn.Utils;
-using UnityEngine;
 
 namespace GrappleKnuckles
 {
@@ -17,8 +16,9 @@ namespace GrappleKnuckles
         public const string ModName = "Grapple Knuckles";
         public const string ModVersion = "0.1.0";
 
-        // Vanilla prefab we clone from.
+        // Vanilla prefabs we read from.
         public const string SourceItemPrefabName = "FistGold"; // Nord Knucklechains
+        public const string VanillaHookPrefabName = "GrapplingHook"; // Deep North grappling hook
         public const string ClonedItemPrefabName = "FistGold_Grapple";
 
         private readonly Harmony _harmony = new Harmony(ModGUID);

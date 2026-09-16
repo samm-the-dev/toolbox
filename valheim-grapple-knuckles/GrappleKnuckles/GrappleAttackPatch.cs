@@ -1,36 +1,94 @@
 using HarmonyLib;
+using Logger = Jotunn.Logger;
 
 namespace GrappleKnuckles
 {
-    // TODO: This patch is a placeholder until the vanilla Grappling Hook's
-    // launch method is confirmed against a decompile of the actual game
-    // assembly (Assembly-CSharp.dll) for 1.0.7. Do NOT ship this as-is.
+    // Design: rather than patching Humanoid.StartAttack and reimplementing
+    // the hook's raycast/pull/rope physics, we patch ObjectDB.UpdateRegisters
+    // (the same extension point BetterGrapplingHook uses to tweak the real
+    // Grappling Hook's stats) to copy the vanilla GrapplingHook's own
+    // secondary-attack config onto our cloned item's secondary attack.
     //
-    // What we need to confirm locally (ILSpy/dnSpy on your own Valheim
-    // install, or from an existing open-source mod that already patches
-    // the hook):
-    //   1. The vanilla Grappling Hook's actual prefab name (NOT "FistGold").
-    //   2. Whether the hook launch logic lives on a custom ItemDrop.ItemData
-    //      subtype / component (e.g. something exposing a "Fire"/"Launch"
-    //      method), or is driven entirely through Attack + an
-    //      AttackData-style config with a specific "attack type" enum value
-    //      that Humanoid.StartAttack dispatches on.
-    //   3. The exact signature of the method that fires the grapple raycast
-    //      and pulls the player (so we can call it directly instead of
-    //      reimplementing physics).
-    //
-    // Once confirmed, this class should:
-    //   - [HarmonyPatch(typeof(Humanoid), nameof(Humanoid.StartAttack))]
-    //     (or wherever secondary-attack dispatch actually happens)
-    //   - Check if the current weapon prefab name is
-    //     GrappleKnucklesPlugin.ClonedItemPrefabName and the attack slot is
-    //     "secondary"
-    //   - If so, short-circuit vanilla knucklechains special-move logic and
-    //     invoke the vanilla hook's launch method/component instead
-    //     (ideally by reusing the vanilla Hook item's own component so we
-    //     get its raycast + pull-toward-anchor + rope rendering for free).
-    internal static class GrappleAttackPatch
+    // Confirmed facts this relies on (see research notes / PR description):
+    //   - The vanilla Grappling Hook prefab is "GrapplingHook", not FistGold.
+    //   - ItemDrop.ItemData.SharedData.m_secondaryAttack (type Attack) is the
+    //     Attack instance that actually fires the grapple: it holds
+    //     m_attackProjectile, which is what spawns/drives the real
+    //     GrapplingPoint component (rope LineRenderer, pull-toward-anchor,
+    //     etc). By pointing our clone's secondary Attack at the same
+    //     projectile and stamina/reload numbers, vanilla's own attack
+    //     dispatch does the rest - no physics reimplementation needed.
+    //   - We deliberately do NOT copy m_attackAnimation: Knucklechains'
+    //     own secondary-attack punch animation is left in place, so the
+    //     item still reads as "knuckles punch, hook flies out" rather than
+    //     playing a crossbow-draw animation on bare fists. Valheim's attack
+    //     animations fire a generic animation-event callback that triggers
+    //     whatever Attack is configured on the weapon regardless of which
+    //     clip is playing, so this should still fire the projectile - but
+    //     this is the single biggest thing to verify in-game and the most
+    //     likely spot to need iteration if the hook doesn't launch.
+    [HarmonyPatch(typeof(ObjectDB), nameof(ObjectDB.UpdateRegisters))]
+    internal static class ObjectDB_UpdateRegisters_GrapplePatch
     {
-        // Filled in once the real target method is confirmed.
+        private static bool _applied;
+
+        private static void Postfix(ObjectDB __instance)
+        {
+            // ObjectDB.UpdateRegisters runs repeatedly (login, respawn,
+            // etc.); the attack data only needs wiring once per process.
+            if (_applied || __instance == null)
+            {
+                return;
+            }
+
+            var hookPrefab = __instance.GetItemPrefab(GrappleKnucklesPlugin.VanillaHookPrefabName);
+            var clonedPrefab = __instance.GetItemPrefab(GrappleKnucklesPlugin.ClonedItemPrefabName);
+
+            if (hookPrefab == null)
+            {
+                Logger.LogWarning(
+                    $"Could not find vanilla item prefab '{GrappleKnucklesPlugin.VanillaHookPrefabName}' " +
+                    "in ObjectDB - confirm this is still the correct prefab name for your game version.");
+                return;
+            }
+
+            if (clonedPrefab == null)
+            {
+                // Not registered yet this pass; try again next UpdateRegisters call.
+                return;
+            }
+
+            var hookItemData = hookPrefab.GetComponent<ItemDrop>()?.m_itemData;
+            var clonedItemData = clonedPrefab.GetComponent<ItemDrop>()?.m_itemData;
+
+            var hookAttack = hookItemData?.m_shared?.m_secondaryAttack;
+            if (hookAttack == null)
+            {
+                Logger.LogWarning(
+                    "Vanilla GrapplingHook has no m_secondaryAttack configured - " +
+                    "the confirmed field name may have changed, or the hook fires from m_attack instead.");
+                return;
+            }
+
+            if (clonedItemData?.m_shared == null)
+            {
+                Logger.LogWarning("Cloned Grapple Knuckles item has no SharedData yet; skipping attack wiring.");
+                return;
+            }
+
+            var clonedAttack = clonedItemData.m_shared.m_secondaryAttack ?? new Attack();
+
+            clonedAttack.m_attackProjectile = hookAttack.m_attackProjectile;
+            clonedAttack.m_attackStamina = hookAttack.m_attackStamina;
+            clonedAttack.m_reloadTime = hookAttack.m_reloadTime;
+            clonedAttack.m_blockReloadTime = hookAttack.m_blockReloadTime;
+
+            clonedItemData.m_shared.m_secondaryAttack = clonedAttack;
+            _applied = true;
+
+            Logger.LogInfo(
+                $"Wired {GrappleKnucklesPlugin.ClonedItemPrefabName}'s secondary attack to " +
+                $"{GrappleKnucklesPlugin.VanillaHookPrefabName}'s grapple projectile.");
+        }
     }
 }

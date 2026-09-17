@@ -246,18 +246,33 @@ frost staff. This shield is a melee/block echo of that staff, not a
 replica of its exact recipe/cost, and the recipe quantities are estimates
 same as everywhere else in this mod.
 
+**Now visually cloned from `ShieldIronBuckler`** ("Iron Buckler", confirmed
+real prefab), per explicit direction, replacing the earlier unconfirmed
+`ShieldCarapace` guess - this is a confirmed-real source now, not a guess.
+A silver-ish tint (`SilverTint`) is applied via
+`MaterialPropertyBlock.SetColor("_Color", ...)` - a real, documented
+technique (verified against `Rexabit/valheim-visuals-modifier`, a working
+recolor mod that uses the exact same approach on the same shader
+property), but **the actual visual result was never seen or verified in
+this environment** - only the technique is confirmed, not that this
+specific shade/approach looks right on this specific shield. Check this
+first at the desktop; it degrades silently to the source item's original
+color on any exception rather than breaking the item.
+
+A "frost enchant glow" VFX was explicitly requested alongside this but
+**deliberately not attempted**: research found only one real precedent
+(`naomi-nada/nada-vfx-weapon`), a whole dedicated per-item particle VFX rig
+system still in active development/preview upstream, not a simple
+attach-and-done API. This needs meaningful engineering effort and visual
+iteration this remote environment can't do - left as an open idea for the
+desktop session.
+
 This is the highest-risk file in the mod - four distinct mechanics
 (continuous Eitr drain on a held input, a parry-detection proc, a
 block-break proc, and a rotation-swap trick for omnidirectional blocking),
 each landing on a real confirmed vanilla method/field, but several
 supporting assumptions were never independently re-verified this session:
 
-- **`ShieldSourcePrefabName = "ShieldCarapace"` is an unconfirmed guess**
-  at a real Mistlands-tier shield to clone from, picked for tier
-  consistency with the rest of the mod - never checked against Jötunn's
-  prefab list. Degrades gracefully (logs a warning, no-ops) if wrong, same
-  as every other "prefab not found" case in this mod, but confirm the real
-  name first.
 - **`Humanoid.UseEitr(float)`** (the Eitr-drain-while-blocking patch) is an
   assumption by analogy with the confirmed `UseStamina` pattern and the
   confirmed `UpdateAttackBowDraw` Eitr-drain precedent - the exact method
@@ -307,3 +322,23 @@ supporting assumptions were never independently re-verified this session:
   shield's block/parry/break effects - it reuses the frost burst
   projectile's own VFX for the break effect only. A bubble visual is still
   an open idea, not implemented.
+
+## Open idea: Ashlands fist weapon
+
+A survey confirmed (reasonably well-supported via WebSearch, not from a
+primary/decompiled source) that **no Ashlands-tier fist weapon exists in
+vanilla** - the full real `Fist*` roster is `FistBjornClaw` (Meadows),
+`FistBjornUndeadClaw` (Plains), `FistFenrirClaw` (Mountain, lower
+confidence), and the Deep North `FistGold` family (already used by Grapple
+Knuckles). A community discussion is cited as explicitly noting fist
+weapons have gone multiple biomes without a new entry.
+
+The idea floated was moving Grapple Knuckles itself into this gap, but
+that doesn't structurally work: Grapple Knuckles fundamentally requires
+the real `GrapplingHook` item as a recipe ingredient, and `GrapplingHook`
+is Deep North-only - Deep North sits *above* Ashlands in progression (the
+later, harder biome), so an Ashlands-tier item can't sensibly require a
+Deep North ingredient. If an Ashlands "chain fist" is still wanted, it
+would need to be a distinct new item using only Ashlands materials, not a
+re-tier of Grapple Knuckles - not yet designed or built, pending further
+direction.

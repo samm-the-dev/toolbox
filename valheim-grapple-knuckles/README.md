@@ -227,11 +227,17 @@ mod - see `CLAUDE.md` for the full list of what to verify.
 ## Shield of Frost (`ShieldOfFrost.cs` / `ShieldOfFrostPatches.cs`)
 
 The frost identity from the original fire/frost dagger idea, moved to its
-own item: a shield (cloned from a Mistlands-tier vanilla shield -
-`ShieldCarapace`, **unconfirmed**, see `CLAUDE.md`), Mistlands-tier, priced
-with Freeze Gland + Refined Eitr (Staff of Frost's real materials) -
-useful against the Seekers' ranged fire attacks. Four mechanics, each
-hooked onto a real confirmed vanilla method rather than reimplemented:
+own item: a shield visually cloned from **Iron Buckler**
+(`ShieldIronBuckler`, confirmed real) with a silver-ish tint applied via
+`MaterialPropertyBlock` (a real, documented recolor technique - result
+unverified visually, see `CLAUDE.md`), Mistlands-tier, priced with Freeze
+Gland + Refined Eitr (Staff of Frost's real materials) - useful against
+the Seekers' ranged fire attacks. A "frost enchant glow" VFX was requested
+too but deliberately not attempted - the only real precedent found is a
+whole dedicated particle-rig mod, not a simple attach; left for the
+desktop session where the result can actually be seen. Four mechanics,
+each hooked onto a real confirmed vanilla method rather than
+reimplemented:
 
 - **Channels Eitr while blocking** instead of vanilla's zero-cost idle
   block, mirroring the confirmed real precedent for continuous per-tick

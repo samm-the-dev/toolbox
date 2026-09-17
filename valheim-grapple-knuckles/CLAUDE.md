@@ -32,39 +32,20 @@ and, if it's not frost, either swap the damage field this code modifies
 different source projectile that's actually frost-flavored for these two
 effects.
 
-## BloodMagicSpear.cs
+## REMOVED: BloodMagicSpear.cs
 
-New: Deep North's first item, using the real vanilla "Blood Magic" resource
-mechanic (Eitr + percentage of CURRENT health, engine-clamped so it can't
-kill the wielder) instead of the pure-Eitr pattern every other item in this
-mod uses. Fully confirmed via direct decompile (`davrum/assembly_valheim`,
-`Attack.cs` lines 82-89/460-503 and `Character.cs` lines 2531-2541) -
-`Attack.m_attackHealth`/`m_attackHealthPercentage` are real fields, set the
-same simple way `m_attackEitr` already is elsewhere; no Harmony patch
-needed, vanilla's own `Attack.Update()` calls `Character.UseHealth()`
-directly.
-
-- Clones `SpearGold` (Nord Spear) and retunes its existing secondary attack
-  (no new projectile/prefab cloned, unlike every other weapon in this mod)
-  rather than reusing one of the already-cloned bolts, specifically so
-  Deep North doesn't feel like another elemental-bolt reskin.
-- **`Bloodgold`/`Nornathread` prefab names are not independently confirmed
-  for this file specifically** - they appeared consistently across
-  multiple prior research passes (cited in both Echo Spike's and Lightning
-  Strike's real recipes), giving reasonable confidence, but the exact
-  Jötunn spelling/capitalization was never checked directly. Degrades
-  gracefully if wrong, same as everywhere else in this mod.
-- Secondary attack numbers (8% current health, 5 Eitr, +40 pierce) are
-  arbitrary starting points, same as every other tuning number in this
-  mod.
-- A more thematically "complete" Blood Magic item might follow the real
-  pattern more closely (Echo Spike/Dead Raiser/Spirit Caller are all
-  summon-type weapons whose power scales with Blood Magic skill level, not
-  simple direct-damage attacks) - this was deliberately scoped down to
-  "reuse an existing attack slot, just change its resource cost," since
-  building a real summon/minion mechanic would be substantially more
-  engineering than anything else in this mod and wasn't asked for
-  specifically.
+Built, then dropped per explicit direction ("I'm not sure about the blood
+magic weapon... drop the blood magic weapon"). It cloned `SpearGold` (Nord
+Spear) and retuned its existing secondary attack to cost Eitr + a
+percentage of current health, using the real vanilla "Blood Magic"
+resource mechanic (`Attack.m_attackHealth`/`m_attackHealthPercentage`,
+confirmed via direct decompile - `davrum/assembly_valheim`, `Attack.cs`
+lines 82-89/460-503 and `Character.cs` lines 2531-2541). The file and its
+`GrappleKnucklesPlugin.cs` wiring were deleted; the Blood Magic resource
+research itself (distinct from Elemental Magic, Eitr + % current health,
+engine-clamped so it can't kill the wielder) remains accurate and could be
+revisited for a future item if desired - nothing about the mechanic itself
+was found to be wrong, it was a design/scope call.
 
 ## GrappleKnucklesPlugin.cs / GrappleAttackPatch.cs
 
@@ -198,6 +179,15 @@ movement speed, keeping their Eitr regen intact.
 
 ## ElementalWeapons.cs / ElementalWeaponAttackPatch.cs
 
+- **Open question, deliberately left as-is per explicit direction**:
+  Lightning Sword clones `SwordGold`, but vanilla already has a real
+  sword+lightning combo via the Iolite gem (`GemstoneBlue`) enchant system
+  on `SwordNiedhogg`, raising the question of whether this item should
+  instead clone a different base (e.g. `MaceGold`) to feel more distinct
+  from that existing vanilla combo. Discussed but explicitly left open
+  ("leave the weapon base open for the lightning weapon") - the current
+  `SwordGold` base stays as-is; this is a live design question for a
+  future session, not an oversight.
 - The Fire Dagger is now a direct clone of `KnifeGold` (Nord Dagger) - an
   earlier version cloned `KnifeSkollAndHati` instead (for its dual-blade
   animation) and attempted a mesh-reskin toward Nord Dagger's appearance,
@@ -434,8 +424,8 @@ Greatsword") whose active elemental damage type cycles Fire (default) ->
 Frost -> Lightning -> Poison on secondary attack use, per explicit
 direction ("an elemental effect that you can change on special use").
 Reuses the Deep North `Bloodgold`/`Nornathread` material family already
-used by `BloodMagicSpear.cs` (same not-independently-confirmed-spelling
-caveat applies here too).
+used elsewhere in this project's research (same not-independently-
+confirmed-spelling caveat applies here too).
 
 Two Harmony patches, both backed by a dedicated research pass this
 session (not carried over from earlier, less rigorous research):

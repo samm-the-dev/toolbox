@@ -17,6 +17,7 @@ survey - see `CLAUDE.md` for the full research trail):
 | Ashlands | Exploding Sledge | Frost splinter-burst secondary |
 | Ashlands | Grapple Knuckles | The original item - the Ashlands "upgrade" to the Mistlands hook |
 | Deep North | Deep North Hybrid Armor | Fast-mage hybrid armor set (built from the real "Caller" mage armor) |
+| Deep North | Blood Magic Spear | First item using the real "Blood Magic" resource (Eitr + % current health) instead of pure Eitr |
 
 **Grapple Knuckles** (`FistGold_Grapple`) is the intended narrative:
 you get the plain vanilla **Grappling Hook** (`GrapplingHook`) easily in
@@ -45,6 +46,36 @@ movement speed bonus, all deliberately tuned for fun over strict balance
 `FistGold` at all - see the intro above for why - so there's no quality
 level to carry over from an ingredient; the crafted item starts at quality
 1 like any other new recipe output.
+
+## Blood Magic Spear (`BloodMagicSpear.cs`)
+
+Deep North's first item, and the first in this toolkit to use a
+mechanically different resource: real Valheim has a distinct "Blood Magic"
+skill line (Staff of Protection, Dead Raiser, Echo Spike, Spirit Caller)
+separate from "Elemental Magic" (the Embers/Frost/Fracturing/Lightning
+staves everything else in this mod echoes), costing Eitr **plus a
+percentage of the caster's current health** rather than pure Eitr.
+Confirmed via direct decompile: `Attack.m_attackHealthPercentage` is a
+real field, calculated off `GetHealth()` (current, not max) with a
+skill-based discount, and vanilla engine code clamps it so a Blood Magic
+attack can never reduce health below 1 - no Harmony patch needed, it's
+set the same simple way `m_attackEitr` already is elsewhere in this mod.
+
+Clones `SpearGold` (Nord Spear) and retunes its own existing secondary
+attack (8% current health + 5 Eitr, +40 pierce) rather than pointing it at
+a new cloned projectile like every other weapon here - deliberately, so
+Deep North doesn't feel like a fifth elemental-bolt reskin. A more
+"complete" Blood Magic item would follow the real pattern closer (the real
+examples are all summon-type weapons whose power scales with skill level,
+not direct-damage attacks) - that's a bigger undertaking than this mod has
+attempted anywhere else, and was intentionally scoped down; see `CLAUDE.md`.
+
+Priced with Bloodgold + Nornathread (materials that appeared consistently
+across multiple real Deep North recipes researched earlier in this
+project) - exact prefab spelling not independently re-confirmed for this
+specific file, degrades gracefully if wrong.
+
+**Status:** implemented, untested in-game.
 
 ## How the secondary attack override works
 
@@ -417,5 +448,9 @@ Copy the built `GrappleKnuckles.dll` into `<Valheim install>/BepInEx/plugins/Gra
 - `ExplodingSledge.cs` - clones `SledgeGold` and a splinter burst
   projectile (from Staff of Fracturing's sub-munition) for its secondary
   attack; includes its own `ObjectDB.UpdateRegisters` Harmony patch.
+- `BloodMagicSpear.cs` - clones `SpearGold` and retunes its secondary
+  attack to cost Eitr + a percentage of current health (real
+  `Attack.m_attackHealthPercentage` field) instead of pure Eitr - no
+  Harmony patch, no cloned projectile.
 - `manifest.json` - Thunderstore package manifest.
 - `Libraries/` - local-only reference DLLs (gitignored, not committed).

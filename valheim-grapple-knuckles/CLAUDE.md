@@ -32,6 +32,40 @@ and, if it's not frost, either swap the damage field this code modifies
 different source projectile that's actually frost-flavored for these two
 effects.
 
+## BloodMagicSpear.cs
+
+New: Deep North's first item, using the real vanilla "Blood Magic" resource
+mechanic (Eitr + percentage of CURRENT health, engine-clamped so it can't
+kill the wielder) instead of the pure-Eitr pattern every other item in this
+mod uses. Fully confirmed via direct decompile (`davrum/assembly_valheim`,
+`Attack.cs` lines 82-89/460-503 and `Character.cs` lines 2531-2541) -
+`Attack.m_attackHealth`/`m_attackHealthPercentage` are real fields, set the
+same simple way `m_attackEitr` already is elsewhere; no Harmony patch
+needed, vanilla's own `Attack.Update()` calls `Character.UseHealth()`
+directly.
+
+- Clones `SpearGold` (Nord Spear) and retunes its existing secondary attack
+  (no new projectile/prefab cloned, unlike every other weapon in this mod)
+  rather than reusing one of the already-cloned bolts, specifically so
+  Deep North doesn't feel like another elemental-bolt reskin.
+- **`Bloodgold`/`Nornathread` prefab names are not independently confirmed
+  for this file specifically** - they appeared consistently across
+  multiple prior research passes (cited in both Echo Spike's and Lightning
+  Strike's real recipes), giving reasonable confidence, but the exact
+  Jötunn spelling/capitalization was never checked directly. Degrades
+  gracefully if wrong, same as everywhere else in this mod.
+- Secondary attack numbers (8% current health, 5 Eitr, +40 pierce) are
+  arbitrary starting points, same as every other tuning number in this
+  mod.
+- A more thematically "complete" Blood Magic item might follow the real
+  pattern more closely (Echo Spike/Dead Raiser/Spirit Caller are all
+  summon-type weapons whose power scales with Blood Magic skill level, not
+  simple direct-damage attacks) - this was deliberately scoped down to
+  "reuse an existing attack slot, just change its resource cost," since
+  building a real summon/minion mechanic would be substantially more
+  engineering than anything else in this mod and wasn't asked for
+  specifically.
+
 ## GrappleKnucklesPlugin.cs / GrappleAttackPatch.cs
 
 **Re-tiered to Ashlands** per explicit direction, after the

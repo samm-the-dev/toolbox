@@ -426,3 +426,70 @@ is cited as explicitly noting fist weapons have gone multiple biomes
 without a new entry. Grapple Knuckles (see above) now fills this gap,
 per explicit direction, once the `GrapplingHook` tier correction made an
 Ashlands placement possible without a progression-ordering conflict.
+
+## PrismBlade.cs / PrismBladePatches.cs
+
+New: an endgame Deep North two-handed sword (clones `THSwordGold`, "Nord
+Greatsword") whose active elemental damage type cycles Fire (default) ->
+Frost -> Lightning -> Poison on secondary attack use, per explicit
+direction ("an elemental effect that you can change on special use").
+Reuses the Deep North `Bloodgold`/`Nornathread` material family already
+used by `BloodMagicSpear.cs` (same not-independently-confirmed-spelling
+caveat applies here too).
+
+Two Harmony patches, both backed by a dedicated research pass this
+session (not carried over from earlier, less rigorous research):
+
+- **`ItemDrop.ItemData.GetDamage(int, float)` Postfix** - confirmed safe
+  to override per-instance because `HitData.DamageTypes` is a struct
+  (returned by value), so overriding `__result` never touches the shared
+  `SharedData.m_damages` that every Prism Blade instance points at.
+  Confirmed real precedent: EpicLoot (`RandyKnapp/ValheimMods`,
+  `ModifyDamage.cs`/`ConvertPhysicalDamageToLightning.cs`) patches this
+  exact method the same way. Confirmed this method is *also* called from
+  tooltip/UI code, so it must only read state and override output - never
+  trigger the element swap itself. Zeroes all four elemental fields and
+  sets only the currently-active one, per explicit design intent (deal
+  ONE element at a time, not all four simultaneously).
+- **`Humanoid.StartAttack(Character, bool)` Postfix**, gated on
+  `secondaryAttack && __result` - confirmed via a dedicated research pass
+  that this method is polled every `FixedUpdate` while the attack button
+  is held but only *returns true* once per actual successful swing start,
+  and that the real mod `sighsorry1029/SecondaryAttacks` patches this
+  exact method the same way for one-shot-per-swing behavior. Also
+  confirmed (same research pass) that `Attack`/`Attack.Start` itself has
+  no field distinguishing primary from secondary - `Humanoid.StartAttack`'s
+  `secondaryAttack` parameter is the only reliable signal, and there's a
+  real internal field mirroring it (`Humanoid.m_currentAttackIsSecondary`,
+  protected, `Humanoid.cs:93`) that wasn't needed here since the Postfix
+  already receives the parameter directly.
+
+**Not confirmed / carried-over assumptions, same confidence level as
+identical assumptions already accepted elsewhere in this mod:**
+
+- `m_rightItem` as the private `Humanoid` field holding a two-handed
+  weapon - by analogy with the `m_leftItem` assumption
+  `ShieldOfFrostPatches.cs` already relies on for the shield slot, not
+  freshly confirmed this session. Two-handed weapons are understood to
+  occupy the right-hand slot in vanilla (same slot as one-handed
+  weapons), but this specific field name wasn't decompile-verified in
+  this project's own research threads.
+- `Humanoid.UseEitr(float)` - same unconfirmed-but-precedented assumption
+  already used in `ShieldOfFrostPatches.cs` and
+  `ElementalWeaponAttackPatch.cs`.
+- `MessageHud.instance.ShowMessage(MessageHud.MessageType.Center, ...)` to
+  announce the newly-active element - a very common Valheim modding
+  pattern, but not decompile-confirmed in this project. Defensively
+  null-checked so a wrong assumption here just silently skips the message
+  rather than breaking the element swap itself.
+- `ItemDrop.ItemData.m_variant` was already confirmed real/persistent
+  earlier in this session's research (both ZDO and Inventory ZPackage
+  serialization) - reused here as the 0-3 active-element index. Genuinely
+  per-instance (unlike `SharedData` fields), so multiple Prism Blades in
+  the world can each have their own active element correctly.
+
+**Untested in-game, same as every other item in this mod**: whether the
+`GetDamage` Postfix actually overrides the damage number shown in
+tooltips/combat text as expected, whether the element-swap message
+displays correctly, and whether `m_variant` round-trips correctly through
+a full save/load cycle for this specific item.

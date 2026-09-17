@@ -42,6 +42,7 @@ namespace GrappleKnuckles
             ItemManager.OnItemsRegistered += AshlandsHybridArmor.Clone;
             ItemManager.OnItemsRegistered += DeepNorthHybridArmor.Clone;
             ItemManager.OnItemsRegistered += BloodMagicSpear.Clone;
+            ItemManager.OnItemsRegistered += PrismBlade.Clone;
             PrefabManager.OnVanillaPrefabsAvailable += CloneProjectile;
             ElementalWeapons.Init();
             ShieldOfFrost.Init();
@@ -60,6 +61,7 @@ namespace GrappleKnuckles
             ItemManager.OnItemsRegistered -= AshlandsHybridArmor.Clone;
             ItemManager.OnItemsRegistered -= DeepNorthHybridArmor.Clone;
             ItemManager.OnItemsRegistered -= BloodMagicSpear.Clone;
+            ItemManager.OnItemsRegistered -= PrismBlade.Clone;
             PrefabManager.OnVanillaPrefabsAvailable -= CloneProjectile;
             ElementalWeapons.Dispose();
             ShieldOfFrost.Dispose();

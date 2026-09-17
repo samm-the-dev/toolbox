@@ -18,6 +18,7 @@ survey - see `CLAUDE.md` for the full research trail):
 | Ashlands | Grapple Knuckles | The original item - the Ashlands "upgrade" to the Mistlands hook |
 | Deep North | Deep North Hybrid Armor | Fast-mage hybrid armor set (built from the real "Caller" mage armor) |
 | Deep North | Blood Magic Spear | First item using the real "Blood Magic" resource (Eitr + % current health) instead of pure Eitr |
+| Deep North | Prism Blade | Endgame weapon; cycles active element (fire/frost/lightning/poison) on secondary attack |
 
 **Grapple Knuckles** (`FistGold_Grapple`) is the intended narrative:
 you get the plain vanilla **Grappling Hook** (`GrapplingHook`) easily in
@@ -76,6 +77,45 @@ project) - exact prefab spelling not independently re-confirmed for this
 specific file, degrades gracefully if wrong.
 
 **Status:** implemented, untested in-game.
+
+## Prism Blade (`PrismBlade.cs` / `PrismBladePatches.cs`)
+
+An endgame Deep North two-handed sword (clones `THSwordGold`, "Nord
+Greatsword") whose active elemental damage type cycles on secondary attack
+use: Fire (default) -> Frost -> Lightning -> Poison -> back to Fire. Every
+hit deals damage in whichever element is currently active, and only that
+element - not all four stacked together.
+
+Two mechanics, both confirmed via dedicated research this session:
+
+- **Damage override**: a Harmony Postfix on
+  `ItemDrop.ItemData.GetDamage(int, float)` reads the wielded item's
+  `m_variant` field (a real, already-persistent int Valheim itself saves
+  to both ZDOs and inventory data) to determine the active element, then
+  zeroes the other three elemental damage fields on the returned
+  `HitData.DamageTypes` and applies a flat bonus to only the active one.
+  This is safe per-instance - `HitData.DamageTypes` is a struct, so
+  overriding it in a Postfix never touches the shared `SharedData` every
+  Prism Blade instance points at. Real precedent: the EpicLoot mod patches
+  this exact method the same way to implement its own damage-conversion
+  enchantments.
+- **Element cycling**: a Harmony Postfix on
+  `Humanoid.StartAttack(Character, bool)`, gated on
+  `secondaryAttack && __result`, increments `m_variant` and costs a small
+  amount of Eitr. `StartAttack` is polled every physics tick while the
+  attack button is held but only returns `true` once per actual swing, so
+  gating on both the `secondaryAttack` parameter and the return value
+  fires the cycle exactly once per secondary-attack use, not once per
+  frame. Real precedent: the `SecondaryAttacks` mod hooks this same
+  method the same way.
+
+Priced with Bloodgold + Nornathread, same Deep North material family as
+the Blood Magic Spear above (same unconfirmed-exact-spelling caveat).
+
+**Status:** implemented, untested in-game. See `CLAUDE.md` for the full
+list of unconfirmed assumptions (mainly `m_rightItem` as the two-handed
+weapon slot field, `UseEitr`'s exact signature, and whether
+`MessageHud.ShowMessage` is the right call to announce the swap).
 
 ## How the secondary attack override works
 
@@ -452,5 +492,12 @@ Copy the built `GrappleKnuckles.dll` into `<Valheim install>/BepInEx/plugins/Gra
   attack to cost Eitr + a percentage of current health (real
   `Attack.m_attackHealthPercentage` field) instead of pure Eitr - no
   Harmony patch, no cloned projectile.
+- `PrismBlade.cs` - clones `THSwordGold` into an endgame Deep North
+  cycling-element sword; sets its default active element via the real,
+  persistent `m_variant` field.
+- `PrismBladePatches.cs` - Harmony patches on
+  `ItemDrop.ItemData.GetDamage` (per-instance active-element-only damage
+  override) and `Humanoid.StartAttack` (cycles the active element once
+  per secondary attack).
 - `manifest.json` - Thunderstore package manifest.
 - `Libraries/` - local-only reference DLLs (gitignored, not committed).

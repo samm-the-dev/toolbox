@@ -13,6 +13,25 @@ decompile dump found via GitHub search, not this game install's own
 assembly - re-verify against your own copy, since dumps can be stale,
 mismatched game versions, or just wrong.
 
+## HIGH PRIORITY: Staff of Fracturing's real damage type is in doubt
+
+Both `ShieldOfFrostPatches.cs` (the block-break burst) and
+`ExplodingSledge.cs` (the secondary attack) clone
+`staff_clusterbombstaff_projectile`/its splinter sub-munition and modify
+`Projectile.m_damage.m_frost` specifically, on the assumption that "Staff
+of Fracturing" deals frost damage. The user flagged (from memory, not
+verified) that Fracturing is likely **blunt + fire**, not frost at all. If
+that's correct, both of those `m_frost` modifications are silently
+adjusting a damage field that's already zero on the source projectile -
+the burst would still deal whatever blunt/fire damage the projectile
+actually has by default, just not "extra frost" as intended, and the
+"frost" framing/flavor text on both items would be factually wrong about
+what they actually do. **Check Fracturing's real damage composition first**
+and, if it's not frost, either swap the damage field this code modifies
+(`m_damage.m_blunt`/`m_damage.m_fire` instead of `m_frost`) or pick a
+different source projectile that's actually frost-flavored for these two
+effects.
+
 ## GrappleKnucklesPlugin.cs / GrappleAttackPatch.cs
 
 - **Biggest unverified assumption**: Valheim's attack-animation-event

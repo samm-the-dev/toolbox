@@ -37,6 +37,7 @@ namespace GrappleKnuckles
             ItemManager.OnItemsRegistered += FenrisMageArmor.Clone;
             PrefabManager.OnVanillaPrefabsAvailable += CloneProjectile;
             ElementalWeapons.Init();
+            ShieldOfFrost.Init();
 
             _harmony.PatchAll();
 
@@ -49,6 +50,7 @@ namespace GrappleKnuckles
             ItemManager.OnItemsRegistered -= FenrisMageArmor.Clone;
             PrefabManager.OnVanillaPrefabsAvailable -= CloneProjectile;
             ElementalWeapons.Dispose();
+            ShieldOfFrost.Dispose();
             _harmony?.UnpatchSelf();
         }
 

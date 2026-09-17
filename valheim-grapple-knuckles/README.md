@@ -199,6 +199,42 @@ wasn't reachable from this research environment; see `CLAUDE.md`.
 **Status:** implemented, untested in-game, same caveats as the rest of this
 mod - see `CLAUDE.md` for the full list of what to verify.
 
+## Shield of Frost (`ShieldOfFrost.cs` / `ShieldOfFrostPatches.cs`)
+
+The frost identity from the original fire/frost dagger idea, moved to its
+own item: a shield (cloned from a Mistlands-tier vanilla shield -
+`ShieldCarapace`, **unconfirmed**, see `CLAUDE.md`) with four mechanics,
+each hooked onto a real confirmed vanilla method rather than reimplemented:
+
+- **Channels Eitr while blocking** instead of vanilla's zero-cost idle
+  block, mirroring the confirmed real precedent for continuous per-tick
+  resource drain on a held input (`Player.UpdateAttackBowDraw()`'s Eitr
+  drain while charging a bow).
+- **Blocks from all directions**, not just the frontal ~180° arc vanilla
+  shields are limited to (confirmed exact gating check found via decompile)
+  - via a temporary rotation trick during the block check, restored
+    immediately after.
+- **Frost proc on a successful parry.** Deliberately does *not* implement
+  "double damage" as custom code - research confirmed vanilla already does
+  this automatically for any parry against any shield (a perfect block
+  staggers the attacker, and any hit landing on a currently-staggering
+  non-player target already gets doubled in vanilla). This shield just adds
+  a frost hit on top, at the same moment.
+- **Frost AoE burst when the block breaks** (a hit exceeds the shield's
+  block power) - reuses the same "Staff of Fracturing" projectile clone
+  technique as the other weapons, scaled down and spawned at the wielder's
+  position.
+
+**This is the highest-risk file in the mod** - several supporting field/
+method names (`Humanoid.UseEitr`, `m_leftItem`, `Character.Damage`) are
+reasonable assumptions by analogy with confirmed patterns elsewhere, not
+independently re-verified, and the AoE burst spawns via a raw
+`Object.Instantiate` rather than Valheim's own network-aware spawn path,
+which may not replicate correctly in multiplayer. Full breakdown in
+`CLAUDE.md`.
+
+**Status:** implemented, untested in-game.
+
 ## Dev environment setup
 
 You need your own legally-owned copy of Valheim; none of the game or
@@ -273,12 +309,16 @@ Copy the built `GrappleKnuckles.dll` into `<Valheim install>/BepInEx/plugins/Gra
   effects for per-piece Eitr regen and the set's stamina regen bonus. No
   Harmony patch needed for this one - set bonuses are stock vanilla
   behavior once the right `SharedData` fields are set.
-- `ElementalWeapons.cs` - clones the Fire/Frost Dagger (from
-  `KnifeSkollAndHati`, reskinned toward `KnifeGold`) and Lightning Sword
-  (from `SwordGold`), their recipes, elemental damage, and the cloned/
-  scaled-down bolt projectiles.
+- `ElementalWeapons.cs` - clones the Fire Dagger (from `KnifeGold`) and
+  Lightning Sword (from `SwordGold`), their recipes, elemental damage, and
+  the cloned/scaled-down bolt projectiles.
 - `ElementalWeaponAttackPatch.cs` - Harmony patch on `ObjectDB.UpdateRegisters`
   that wires each weapon's secondary attack to its bolt projectile with an
   Eitr cost.
+- `ShieldOfFrost.cs` - clones the shield item and the frost burst
+  projectile used for the block-break effect.
+- `ShieldOfFrostPatches.cs` - Harmony patches on `Humanoid.UpdateBlock`/
+  `BlockAttack` for the Eitr-channel, frost-on-parry, break-AoE, and
+  omnidirectional-block mechanics.
 - `manifest.json` - Thunderstore package manifest.
 - `Libraries/` - local-only reference DLLs (gitignored, not committed).

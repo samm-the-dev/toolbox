@@ -149,33 +149,74 @@ mismatched game versions, or just wrong.
 
 - **No localization file exists anywhere in this project.** Every item
   name/description (`$item_fistgold_grapple`, `$item_fenrismage_chest`,
-  `$item_fire_dagger`, `$item_lightning_sword`, etc.) is an unlocalized
-  token - in-game, these will likely show as the literal raw string, not
-  readable text, until a `Translations/English.json` (or Jötunn's
-  localization API) is added.
+  `$item_fire_dagger`, `$item_lightning_sword`, `$item_shield_of_frost`,
+  etc.) is an unlocalized token - in-game, these will likely show as the
+  literal raw string, not readable text, until a `Translations/English.json`
+  (or Jötunn's localization API) is added.
 - Nothing in this mod has been run in an actual Valheim session. Every
   "confirmed" fact above was confirmed via someone else's source code, not
   by observing this mod's actual behavior.
 
-## Open idea, in progress at time of writing: Shield of Frost
+## ShieldOfFrost.cs / ShieldOfFrostPatches.cs
 
-Not yet built. Design as of this writing: a frost-themed magic shield,
-replacing what was originally going to be a Frost Dagger, that:
-- Channels a small Eitr drain per second while actively blocking (instead
-  of, or alongside, vanilla's stamina-cost block).
-- Works omnidirectionally if vanilla shields don't already (unconfirmed).
-- Triggers a frost AoE burst when the shield "breaks" (a hit exceeds its
-  block power and staggers the block).
-- On a successful parry, procs a frost effect and doubles damage - unclear
-  yet whether that means the parry's own bonus damage or the wielder's
-  next attack.
-- Visually, a smaller version of the Staff of Protection's bubble.
+This is the highest-risk file in the mod - four distinct mechanics
+(continuous Eitr drain on a held input, a parry-detection proc, a
+block-break proc, and a rotation-swap trick for omnidirectional blocking),
+each landing on a real confirmed vanilla method/field, but several
+supporting assumptions were never independently re-verified this session:
 
-This is a new *kind* of mechanic for this mod: a continuous per-second
-resource drain gated on a held input state (blocking), plus hooking two
-distinct combat events (block-break, parry) that nothing built so far has
-touched - not a one-shot attack or a static item-stat change. A research
-pass on the real parry/block-break/channel mechanics was launched but its
-results aren't reflected in this file yet as of this writing - check for a
-newer version of this section, or the actual `ShieldOfFrost.cs` (if it
-exists yet) for what actually got confirmed and built.
+- **`ShieldSourcePrefabName = "ShieldCarapace"` is an unconfirmed guess**
+  at a real Mistlands-tier shield to clone from, picked for tier
+  consistency with the rest of the mod - never checked against Jötunn's
+  prefab list. Degrades gracefully (logs a warning, no-ops) if wrong, same
+  as every other "prefab not found" case in this mod, but confirm the real
+  name first.
+- **`Humanoid.UseEitr(float)`** (the Eitr-drain-while-blocking patch) is an
+  assumption by analogy with the confirmed `UseStamina` pattern and the
+  confirmed `UpdateAttackBowDraw` Eitr-drain precedent - the exact method
+  name/signature wasn't independently re-verified this session.
+- **`m_leftItem`** as the private field holding the equipped shield is an
+  assumption by analogy with the `m_rightItem` assumption used elsewhere in
+  this mod (also never freshly confirmed). If wrong, every gating check in
+  `ShieldOfFrostPatches.cs` silently no-ops (treats the shield as never
+  equipped) rather than erroring - so a "nothing happens" bug here likely
+  means this field name is wrong.
+- **`Character.Damage(HitData)`** (used to apply the frost proc directly to
+  the parried attacker) is an extremely common pattern across Valheim
+  modding generally, but wasn't decompile-confirmed in this project's own
+  research threads specifically.
+- **The AoE burst is spawned via raw `UnityEngine.Object.Instantiate`**,
+  not through Valheim's own `ZNetScene` spawn path. The burst prefab
+  carries networked components (`ZNetView`/`ZSyncTransform`, per earlier
+  research on this same projectile type) - a raw `Instantiate` may not
+  register/replicate correctly in multiplayer. Single-player should still
+  work. This is the single biggest open risk in this file.
+- **The omnidirectional-block rotation trick was never visually verified.**
+  It temporarily rotates the wielder to face directly away from an
+  off-angle hit for the duration of `BlockAttack`, then restores their real
+  rotation immediately after (same "swap state, call original, restore"
+  pattern as `QualityTransferPatch.cs`, applied to rotation instead of item
+  data) - confirmed to satisfy vanilla's exact frontal-arc check
+  (`Vector3.Dot(hit.m_dir, transform.forward) > 0`), but a single-frame
+  rotation snap could be visually noticeable or interact oddly with camera/
+  animation systems in ways static code review can't catch.
+- **"Double damage on parry" is deliberately NOT implemented as custom
+  code.** Research confirmed this already happens automatically in vanilla
+  for any successful parry against any shield (a perfect block staggers
+  the attacker, and `Character.cs` doubles any hit landed on a currently-
+  staggering non-player target) - this mod only adds the frost proc on top.
+  If parrying with this shield doesn't feel like it's doing "double
+  damage," that's most likely this existing vanilla mechanic not
+  triggering as expected (e.g. the follow-up hit landing after the stagger
+  window closes), not a missing feature.
+- Eitr drain rate (4/sec), parry frost damage (15), and the shield's own
+  recipe/upgrade numbers are arbitrary starting points, same as every other
+  tuning number in this mod.
+- The Staff of Protection's bubble VFX prefab name (for a "smaller bubble"
+  visual) was only partially confirmed - two real child GameObject names
+  (`vfx_StaffShield(Clone)`, `fx_shield_start(Clone)`) were found via a
+  real mod's source, but the top-level prefab/StatusEffect asset name to
+  actually clone was not. This mod currently has NO custom visual for the
+  shield's block/parry/break effects - it reuses the frost burst
+  projectile's own VFX for the break effect only. A bubble visual is still
+  an open idea, not implemented.

@@ -22,10 +22,6 @@
       <HintPath>Libraries\assembly_valheim.dll</HintPath>
       <Private>false</Private>
     </Reference>
-    <Reference Include="assembly_lib">
-      <HintPath>Libraries\assembly_lib.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
     <Reference Include="assembly_utils">
       <HintPath>Libraries\assembly_utils.dll</HintPath>
       <Private>false</Private>
@@ -40,6 +36,10 @@
     </Reference>
     <Reference Include="UnityEngine.PhysicsModule">
       <HintPath>Libraries\UnityEngine.PhysicsModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.AudioModule">
+      <HintPath>Libraries\UnityEngine.AudioModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="BepInEx">

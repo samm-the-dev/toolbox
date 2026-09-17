@@ -2,9 +2,9 @@
   "name": "GrappleKnuckles",
   "version_number": "0.1.0",
   "website_url": "",
-  "description": "Nord Knucklechains, but the special attack fires the Mistlands grappling hook.",
+  "description": "Ashlands fist-weapon upgrade of the Mistlands grappling hook, plus a fast-mage toolkit: elemental weapons, hybrid armor sets, and the endgame Prism Blade.",
   "dependencies": [
-    "denikson-BepInExPack_Valheim-5.4.2100",
-    "ValheimModding-Jotunn-2.20.1"
+    "denikson-BepInExPack_Valheim-5.4.2350",
+    "ValheimModding-Jotunn-2.30.0"
   ]
 }

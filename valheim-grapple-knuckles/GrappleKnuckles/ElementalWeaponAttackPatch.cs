@@ -11,7 +11,7 @@ namespace GrappleKnuckles
     // the primary attack's animation trigger, same reasoning as Grapple
     // Knuckles: keep the weapon's own swing animation rather than the
     // source staff's cast animation.
-    [HarmonyPatch(typeof(ObjectDB), nameof(ObjectDB.UpdateRegisters))]
+    [HarmonyPatch(typeof(ObjectDB), "UpdateRegisters")]
     internal static class ObjectDB_UpdateRegisters_ElementalWeaponsPatch
     {
         private const float SecondaryAttackEitrCost = 10f;

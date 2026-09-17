@@ -69,13 +69,15 @@ namespace GrappleKnuckles
 
         public static void Init()
         {
-            ItemManager.OnItemsRegistered += CloneShield;
+            // Item cloning uses OnVanillaPrefabsAvailable, not
+            // ItemManager.OnItemsRegistered - see GrappleKnucklesPlugin.cs.
+            PrefabManager.OnVanillaPrefabsAvailable += CloneShield;
             PrefabManager.OnVanillaPrefabsAvailable += CloneFrostBurst;
         }
 
         public static void Dispose()
         {
-            ItemManager.OnItemsRegistered -= CloneShield;
+            PrefabManager.OnVanillaPrefabsAvailable -= CloneShield;
             PrefabManager.OnVanillaPrefabsAvailable -= CloneFrostBurst;
         }
 

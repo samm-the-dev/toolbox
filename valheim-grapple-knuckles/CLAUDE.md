@@ -13,6 +13,833 @@ decompile dump found via GitHub search, not this game install's own
 assembly - re-verify against your own copy, since dumps can be stale,
 mismatched game versions, or just wrong.
 
+## STATUS (2026-09-17): CONFIRMED WORKING END-TO-END
+
+User: "Working perfectly now." Grapple Knuckles is fully functional and
+polished - core grapple, cooldown (including the sprint/jump-exploit and
+requeue fixes), chain texture (locked to `Shield_Flametal_mat`), and sound
+all confirmed in-game. The cleanup checklist below has been completed -
+`GrappleDebugPatch.cs` deleted, `HARMONY_DEBUG`/diagnostic-wrapping removed
+from `Awake()`, `_harmony` restored to a field initializer. Everything else
+in this file is the historical debugging log that got the mod here - still
+useful for context on *why* things are built the way they are, but no
+longer describes outstanding work for Grapple Knuckles itself. Remaining
+open items are about re-enabling the OTHER items (see "Current test-pass
+scope" below), not this one.
+
+## SESSION HANDOFF (2026-09-17, end of this session)
+
+Read this section first if picking this up fresh. Long live-testing session,
+deep in Grapple Knuckles' secondary attack specifically. Summary of what's
+confirmed, what's fixed, and what's still open, newest/most important first.
+
+**CONFIRMED WORKING IN-GAME**: core grapple (animation, projectile launch,
+actual pull), pierce-bonus removal, right-hand rope anchor, projectile
+damage scaled to 1/10th of weapon damage (`Projectile_ScaleGrappleDamage_Patch`),
+cooldown bar (shows correctly after the `Humanoid.StartAttack` patch move),
+chain texture recolor (shows correctly after the `GetTexturePropertyNames()`
+fix) - user's pick so far: `Shield_Flametal_mat` ("flametal shield looks best
+out of those options").
+
+**Third polish round (2026-09-17, latest)**, user feedback: cooldown bar
+works but doesn't quite match the vanilla hook - specifically the
+`"reload_crossbow"` pose looks wrong on a fist weapon, and reload sound
+works (rides along with that animator state) but the grapple LAUNCH has no
+sound. Changes made, NOT YET RE-TESTED:
+- `GrappleCooldownPatch.QueueCooldown` now uses `m_animation = "equipping"`
+  instead of `"reload_crossbow"` (with no `m_doneAnimation`, matching how
+  real `QueueEquipAction`/`QueueUnequipAction` build their own
+  `MinorActionData`). It's a bool, not a one-shot trigger, so it holds for
+  the full cooldown duration same as before. **Known trade-off, not yet
+  confirmed either way**: the reload SOUND that was working was very likely
+  riding along with the `"reload_crossbow"` animator state as a baked-in
+  Animation Event on that specific clip (same mechanism as the missing
+  launch sound, see below) - swapping the animation bool probably swaps
+  that sound out too, for whatever `"equipping"` itself carries (if
+  anything). Flag this to the user on the next test rather than assuming
+  it's still fine.
+- Added two TEMPORARY diagnostic dumps (`GrappleKnucklesPlugin.cs`,
+  `LogChainTextureCandidates()`/`LogGrappleSoundCandidates()`, both called
+  once from `CloneKnucklechains()`) since the AssetRipper export from
+  earlier in the session couldn't be relocated on disk this round (searched
+  Desktop/Downloads/Documents/temp, not found - may have been in a
+  since-cleaned temp dir). Rather than guess more candidate names blindly:
+    - `LogChainTextureCandidates()` dumps every real, currently-loaded
+      `Material` whose name contains a weapon/armor/shield-ish keyword -
+      per explicit direction ("think we need to just look at weapon/armor/
+      shield textures, might try a new list"), to build the next
+      `ChainTexture` dropdown revision from real verified names.
+    - `LogGrappleSoundCandidates()` dumps every currently-loaded
+      `AudioSource` whose GameObject name contains a bow/crossbow/hook/
+      release/fire/shoot/throw-ish keyword, hunting for a real, reusable
+      launch-sound source. Required adding a `UnityEngine.AudioModule`
+      reference to `GrappleKnuckles.csproj` (copied from the user's own
+      `valheim_Data/Managed/`) - `AudioSource` isn't in `CoreModule`.
+  Both are genuinely exploratory - there's no guarantee `AudioSource`
+  components (vs. some other Valheim-specific sound wrapper) are how these
+  sounds are actually implemented; read next test's log output before
+  building anything on top of what they find.
+- **Working theory on the missing launch sound** (not yet confirmed):
+  confirmed earlier this session that the real vanilla hook's Attack-level
+  EffectLists (`m_triggerEffect` etc.) are ALL empty, and separately
+  confirmed (see "grapple secondary attack" section below) that Valheim's
+  actual attack-trigger mechanism is a Unity Animation Event baked into the
+  specific animation CLIP, not attack-level data. The working reload sound
+  is the strongest evidence yet for this: it appeared automatically just
+  from reusing the real `"reload_crossbow"` animator bool, with zero sound-
+  specific code on our end. By the same logic, the launch "whoosh" is most
+  likely baked into the real crossbow-FIRE clip specifically - which we
+  never play, since Grapple Knuckles reuses the punch animation instead.
+  If true, there's no simple field to copy for this (unlike the reload);
+  it would need either accepting the punch's own sound, or manually
+  triggering a real sound effect via code once a real, reusable AudioClip/
+  prefab reference is found (this is what the new diagnostic dump is for).
+
+**Fourth polish round (2026-09-17, latest)**: user confirmed the `"equipping"`
+reload animation "looks great," locked in (no further animation changes
+planned). User then corrected the cooldown TIMING model with real vanilla
+knowledge ("the vanilla hook reload doesn't start until after the grapple is
+complete, and resets to 0 on sprint") - traced via decompile, NOT YET
+RE-TESTED:
+- **Confirmed, fixed**: real vanilla holds off queueing the reload for the
+  entire active-pull duration, not from the moment of throwing. Decompiled
+  `GrapplingPoint.cs` directly: `Activate()` sets `Player.m_localPlayer.m_grappling = 1f`
+  on hit, `Update()` refreshes it to `0.2f` every frame while the pull is
+  active, `Break(bool early)` (fires on BOTH early-break and normal
+  completion) forces it to exactly `0f`. Separately, `Player.QueueReloadAction()`
+  explicitly guards `!(m_grappling > 0f)` before queueing. So reload is held
+  off for the pull's whole duration and becomes eligible the instant `Break()`
+  runs. **Fix**: `GrappleCooldownPatch` no longer queues on
+  `Humanoid.StartAttack` (throw time) - it now queues on `GrapplingPoint.Break`
+  (pull completion), via a manual postfix reading the private `m_character`
+  field through Harmony's `___m_character` injection convention, scoped to
+  `__instance.name.StartsWith(ClonedGrapplingPointPrefabName)` and
+  `Player.m_localPlayer`.
+  **Known gap, deliberately not handled this round**: a THROW THAT MISSES
+  (projectile despawns without ever hitting anything, so `GrapplingPoint`
+  never spawns/activates/breaks) has no cooldown trigger at all right now -
+  real vanilla gets this for free because `m_weaponLoaded` resets on
+  attack-trigger regardless of hit/miss, independent of `m_grappling`; our
+  cooldown isn't wired through that generic system. Would need to detect "our
+  cloned projectile despawned without hitting anything" (e.g. patch its
+  destroy/TTL path) - flagged for later, not yet requested.
+- **CONFIRMED, no code change needed**: "resets to 0 on sprint," and it
+  applies to the post-pull reload countdown specifically (confirmed via
+  user: "it doesn't start until after the pull"). First two search passes
+  missed it by stopping a few lines short: `Player.CheckRun()` (the real
+  sprint gate) doesn't just check stamina/`IsDrawingBow()`/`IsBlocking()` -
+  reading a few lines further, on the success path (has stamina, actually
+  moving) it unconditionally calls `ClearActionQueue()` every single frame
+  the player is sprinting, right before returning `true`. Separately,
+  `Player.OnJump()` does the exact same thing - jumping ALSO wipes the
+  entire action queue, a bonus fact the user hadn't mentioned. Since
+  `GrappleCooldownPatch` manipulates the real `Player.m_actionQueue` list
+  via reflection (not a private copy), vanilla's own `ClearActionQueue()`
+  calls already apply to our queued Reload entry exactly like they would to
+  a real reload - **this already works with zero code changes**, purely as
+  an emergent property of reusing the real queue instead of building a
+  separate cooldown system. Nothing to implement; just confirm in the next
+  test that sprinting/jumping during the post-grapple cooldown correctly
+  cancels the bar (and note that canceling removes the entry entirely - the
+  player is NOT immediately re-locked-out afterward, matching real vanilla,
+  since there's no re-queue on cancel anywhere in this code path).
+- **Also fixed, same round**: `EquipItem_QueueInitialLoad` (the "load on
+  equip" trigger) converted from `[HarmonyPatch]` + `PatchAll()` to a manual
+  `harmony.Patch()` call, same as `GrapplingPoint.Break` above. Evidence:
+  an entire test pass of repeated equip/unequip cycling never logged even a
+  single `QueueCooldown called` line for this trigger (not even a "already
+  queued, skipping" dupe-guard hit) - the same silent `PatchAll()`
+  non-application already known for `Attack.Start`/`Humanoid.StartAttack`,
+  apparently not unique to those two methods. Going forward: default to
+  manually patching anything touching `Humanoid`/`Attack`/`GrapplingPoint`
+  in this mod rather than assuming `[HarmonyPatch]` + `PatchAll()` works,
+  since the gap has now shown up on three unrelated methods with no root
+  cause ever found.
+
+**Sixth polish round (2026-09-17, latest)**, NOT YET RE-TESTED:
+- **Texture locked in**: `Shield_Flametal_mat` hardcoded as
+  `ChainTextureMaterialName`, dropdown config and both candidate-dump
+  diagnostics removed (served their purpose).
+- **Sprint/jump reload exploit, round 1**: real vanilla auto-requeues a
+  cleared reload every frame via `Player.UpdateWeaponLoading()` (reads the
+  PRIMARY attack's `m_requiresReload`, always false for our punch, so it
+  never did this for us). Added `_grappleLoaded`/`_grappleInFlight` state
+  plus a postfix on `UpdateWeaponLoading` that requeues for our item
+  specifically, mirroring vanilla.
+- **Sprint/jump reload exploit, round 2 (the real fix)**: user found that
+  sprinting CONTINUOUSLY still let attacks slip through despite round 1 -
+  "if I sprint and keep it at zero, I can trigger the launch without
+  waiting for the reload at all." Root cause: our ONLY block was
+  `Humanoid.InMinorAction()`, which is purely animator-state-TAG based, not
+  tied to the C# queue directly. `Player.CheckRun()`'s `ClearActionQueue()`
+  (confirmed via decompile) only clears the list - it does NOT touch the
+  animator bool; that only happens inside `UpdateActionQueue()`'s "queue
+  now empty" branch. Sprinting continuously creates a race every frame:
+  `CheckRun()` clears the queue -> `UpdateActionQueue()` sees it empty and
+  sets the animator bool false -> `InMinorAction()` is briefly, genuinely
+  false -> `StartAttack()` slips through in that window, even though
+  `UpdateWeaponLoading_RequeueIfNeeded` re-adds a fresh entry moments later
+  (too late). Real vanilla doesn't have this hole because `Attack.Start()`
+  has a SECOND, non-animator gate for real reload weapons:
+  `if (m_requiresReload && !IsWeaponLoaded()) return false;` - pure C#
+  state, immune to animator/queue timing. Added the equivalent ourselves:
+  `StartAttack_BlockIfNotLoaded`, a Prefix on `Humanoid.StartAttack` that
+  checks `_grappleLoaded` directly and blocks (skips the original method,
+  `__result = false`) before `Attack.Start`/`ClearActionQueue` ever run,
+  regardless of what the animator happens to be doing that frame. This is
+  the robust, timing-independent gate; `InMinorAction()` (via the queued
+  MinorActionData) remains as the visual/HUD-bar layer on top, not the
+  actual enforcement anymore.
+
+**Fifth polish round (2026-09-17)**: the
+`LogChainTextureCandidates()`/`LogGrappleSoundCandidates()` diagnostics
+added last round paid off - both produced real, verified data on the very
+next test:
+- **ChainTexture dropdown rebuilt from real data**: the diagnostic dumped
+  297 real, currently-loaded materials matching weapon/armor/shield-ish
+  keywords. Replaced the old ore-bar-heavy shortlist with a curated list of
+  real weapon/armor/shield surface materials: `Shield_Flametal_mat`
+  (new default - user's confirmed favorite), `FlametalArmor_Mat`,
+  `Flametal_Mat`, `nordfistweapon_frostflame_mat`/`_thunderblood_mat` (real
+  alternate skins for THIS SAME FistGold model, not just a same-shader
+  guess), `BlackMetalChest_mat`, `BlackMetalRoundShields_mat`,
+  `blackmetalsword`, `IronTowerShield_mat`, `SilverShield_Mat`,
+  `SilverHammer_mat`, `Dyrnwyn_mat`, `Charred_dyrnwyn_mat`,
+  `CrystalAxe_mat`, `battleaxe_mistlands_mat`, `Jotnarmor_mat`,
+  `DN_armor_heavy_mat`, `WolfCapeChain`.
+- **Launch sound implemented**: the sound diagnostic found the real,
+  standalone sound-effect prefabs Valheim uses for the hook:
+  `sfx_grapplinghook_fire`, `_hit`, `_pull`, `_reload`, `_detach`,
+  `_repel` (all found via `AudioSource` GameObject name matching, though
+  their `.clip` read back null via plain `AudioSource` reflection - Valheim
+  wraps them in a custom `ZSFX` component instead, confirmed via decompile:
+  `ZSFX.m_playOnAwake = true` by default, matching how
+  `GrapplingPoint.m_pullSound` is already used elsewhere -
+  `Object.Instantiate(prefab, transform)` with no explicit `Play()` call).
+  New `GrappleFireSoundPatch` (`GrappleAttackPatch.cs`, manually patched on
+  `Attack.Start` like the cooldown/damage patches) looks up
+  `sfx_grapplinghook_fire` once via `Resources.FindObjectsOfTypeAll<GameObject>()`
+  and instantiates it at the character's position when the grapple fires.
+  Sidesteps the earlier "sound is baked into the crossbow_fire animation
+  clip we don't play" theory entirely - uses the real standalone sound
+  prefab directly instead of trying to extract/replicate a clip-embedded
+  Animation Event.
+
+**FIXED, NOT YET RE-TESTED (this session's last round)**:
+- **Cooldown bar never showed, root cause found via decompile**:
+  `Humanoid.StartAttack()`'s own body is
+  `if (attack.Start(...)) { ClearActionQueue(); ...; return true; }` -
+  `ClearActionQueue()` unconditionally wipes `Player.m_actionQueue`
+  immediately after EVERY successful attack start, any weapon. Our cooldown
+  patch was a postfix on `Attack.Start`, which runs BEFORE that line (it's
+  still inside the `if` condition), so our queued Reload entry was added
+  then wiped before the next frame's HUD read ever saw it - explains why
+  `GrappleCooldownPatch`'s own diagnostic logging always showed
+  `queue count=0` right before every `Queued ...` line, and why
+  `GrappleDebugPatch.HudUpdateActionProgress_Debug` never once logged a
+  Reload entry for `$item_fistgold_grapple` despite the queue add
+  "succeeding" every time. The real vanilla hook's reload survives because
+  it's queued from `UpdateWeaponLoading()` on a later frame, outside that
+  call stack. **Fix**: moved `GrappleCooldownPatch`'s manual patch from
+  `Attack.Start` to `Humanoid.StartAttack` (postfix runs after the WHOLE
+  method body, including `ClearActionQueue()`); identifies "this was our
+  grapple" via the equipped weapon's prefab name + `secondaryAttack` flag
+  instead of the (now out-of-scope) `Attack` instance's projectile
+  reference.
+- **Chain texture always rendered flat white, root cause found via
+  decompile**: `Material.mainTexture` only resolves through a shader's
+  `[MainTexture]`-flagged property (an SRP/URP-era Unity feature) or falls
+  back to a literal `"_MainTex"` property; if a shader has neither, it
+  silently returns null. We were hardcoding `SetTexture("_MainTex", ...)`
+  from `sourceMaterial.mainTexture` - if that resolved null for a given
+  material's shader, the clone ended up with no diffuse texture at all
+  while `_Color` (confirmed to exist on all these materials) got forced to
+  the source's tint, usually pure white. This explains why EVERY material
+  choice in the dropdown rendered white, not just Flametal specifically.
+  **Fix**: `ApplyChainTexture()` now enumerates the source material's real
+  texture properties via `Material.GetTexturePropertyNames()` and copies
+  each one (texture + offset + scale) onto the clone by name, instead of
+  assuming `"_MainTex"` is correct - also logs the source shader name and
+  its texture property list so a future failure is diagnosable from one log
+  line instead of another blind round-trip.
+
+**Still open**: sound effects (user asked to investigate; inconclusive so
+far - see "sound effects investigation" note further down). Sprint-blocking
+during the cooldown (reasoned to work for free via `InMinorAction()`, never
+explicitly confirmed in-game).
+
+**Symptom history, so the shape of the bug is clear**: (1) originally
+nothing happened at all → fixed by correcting `m_attackType` to `Projectile`
+and animation handling → (2) kick animation played, projectile spawned but
+"weakly launching in a small arc, not actually grappling" → fixed by
+`Attack.Clone()`-ing the hook's full config (real `m_projectileVel: 40`
+etc.) instead of hand-picking fields, and by ALSO cloning `GrapplingPoint`
+(a separate prefab the projectile spawns on hit, which does the actual
+pull - the flying projectile alone doesn't grapple anything) → (3) that
+regressed to "nothing happens at all again, __result=true but silent" →
+fixed by the `m_attackChainLevels`/`m_attackRandomAnimations` copy (real
+primary attack is a 2-level combo, so `Attack.Start()` needs the
+chain-level-suffixed trigger name, not the bare one) → (4) grapple fully
+working; cooldown bar and chain texture both silently no-op'd, fixed above.
+
+**A confirmed-working temporary diagnostic tool is still in the codebase**:
+`GrappleDebugPatch.cs` (logs `Humanoid.StartAttack`/`Attack.Start` calls
+live) plus a manual isolated `_harmony.Patch()` call and `HARMONY_DEBUG`
+env var wiring in `GrappleKnucklesPlugin.Awake()`. **All of this is
+TEMPORARY and should be deleted once the grapple is confirmed working** -
+see the dedicated section below for exactly what to remove.
+
+**Unresolved side-mystery (does NOT block real functionality, don't chase
+it further unless curious)**: `_harmony.PatchAll()` (the normal
+attribute-based `[HarmonyPatch]` discovery) mysteriously never applies ANY
+postfix to `Humanoid.StartAttack` or `Attack.Start` specifically - true for
+both `GrappleDebugPatch.StartAttack_Debug`/`AttackStart_Debug` AND the
+pre-existing `PrismBladePatches.StartAttack_CycleElement`, even though
+`PatchAll()` reports success (no exception) and correctly applies 3 other
+postfixes to `ObjectDB.UpdateRegisters` in the same call. A **manual,
+isolated `_harmony.Patch(method, postfix: ...)` call on the exact same
+`Attack.Start` method succeeds immediately** and its postfix reliably
+fires during real gameplay (confirmed live, `__result=True`). So Harmony
+CAN patch these methods - something specific about `PatchAll()`'s
+auto-discovery path skips them silently for reasons never root-caused.
+Doesn't matter for the mod's real functionality (the actual grapple
+mechanic never depended on patching these two methods - only the debug
+tooling did), but flagging in case it recurs for a real future patch on
+either method: use a manual `_harmony.Patch(...)` call as a working
+fallback if `[HarmonyPatch]` attribute discovery silently fails again.
+
+**Toolchain notes for whoever picks this up**: `.NET 8 SDK` and `ilspycmd`
+(dotnet tool) are installed on this machine specifically for this project.
+`GrappleKnuckles/Libraries/` is populated with real DLLs copied from the
+user's own game install and r2modman profile (BepInExPack 5.4.2350, Jötunn
+2.30.0) - the project builds clean (`dotnet build -c Release`). A dedicated
+r2modman profile, `GrappleKnucklesDev`, exists with just BepInExPack +
+Jötunn + this mod + the user's 15 QoL mods, isolated from their main
+`Default` profile. `deploy-local.ps1` at the repo root rebuilds and
+redeploys to that profile in one step (or just `dotnet build` +
+`cp bin/Release/GrappleKnuckles.dll` to
+`%APPDATA%\r2modmanPlus-local\Valheim\profiles\GrappleKnucklesDev\BepInEx\plugins\GrappleKnuckles\`
+- **check the `valheim` process isn't running first, it locks the DLL**).
+BepInEx's console window is enabled for this profile
+(`Logging.Console.Enabled = true` in that profile's `BepInEx.cfg`) - more
+reliable for live debugging than the disk log, which has repeatedly (if
+inconsistently) lagged behind real-time in this session; when in doubt,
+ask for a relaunch and check `BepInEx/LogOutput.log` in that profile - our
+own `Jotunn.Logger` calls always eventually show up there once the process
+exits cleanly, even when the console window itself doesn't cooperate.
+
+### Post-fix polish round (2026-09-17, same session, after "working now!")
+
+Four changes, all in response to live-testing the now-working grapple:
+
+1. **Pierce damage bonus removed** (`GrappleAttackPatch.cs`) - per explicit
+   direction, the `+40 m_pierce` on the grapple projectile is gone. The
+   `ProjectilePierceDamageBonus` constant and its log-message reference were
+   removed too, not just the application.
+2. **Rope anchors to the right hand, not vanilla's hardcoded left hand**
+   (new `GrapplingPoint_RightHandAnchor_Patch` in `GrappleAttackPatch.cs`).
+   `GrapplingPoint.Activate()` (confirmed via decompile) always sets
+   `m_attachPoint = visEquipment.m_leftHand` - fine for the real hook
+   (never dual-wielded), wrong for a fist weapon. Postfix re-points
+   `m_attachPoint` to `visEquipment.m_rightHand` instead, scoped to only
+   our own cloned `GrapplingPoint` instances (matched by name prefix, since
+   `Instantiate()` appends `"(Clone)"`) - never touches real vanilla hook
+   throws from other players. Checked the real `ChitinHarpoon`/
+   `SE_Harpooned` (a different rope-visual weapon) for a cleaner pattern
+   first - it has no hand-anchor concept at all (pulls a target via a
+   status effect, structurally different), so this was the only real
+   option.
+3. **Real cooldown, both post-fire and on-equip**
+   (`GrappleCooldownPatch.cs`, new file). Extensively researched why
+   vanilla has nothing usable here (see "why no vanilla reload mechanism
+   works" below) - ended up reusing `Player.m_actionQueue`/
+   `Player.MinorActionData` directly via reflection, the same general
+   system real crossbow reloads/equipping/unequipping use.
+   `AttackStart_QueueCooldown` (manually patched onto `Attack.Start`, same
+   reason as the debug probe - see below) queues a fake
+   `ActionType.Reload` action after a successful grapple fire, identified
+   by the fired `Attack`'s `m_attackProjectile` matching our cloned
+   projectile (not by weapon name, since `Humanoid.StartAttack` clones the
+   `Attack` fresh every time - confirmed via decompile, so the instance is
+   never reference-equal to `SharedData.m_secondaryAttack`).
+   `EquipItem_QueueInitialLoad` (a normal `[HarmonyPatch]` on
+   `Humanoid.EquipItem` - not manually patched, no evidence this one has
+   the `Attack.Start`/`Humanoid.StartAttack` PatchAll() issue) does the
+   same on equip, matching the real hook's "must load before first use."
+   Per explicit direction, `m_animation`/`m_doneAnimation` reuse the REAL
+   `"reload_crossbow"`/`"reload_crossbow_done"` bool names (not a made-up
+   name) specifically so this rides the same animator-tag-driven
+   `Humanoid.InMinorAction()` state real reload uses - confirmed this is
+   what blocks starting a new attack, and (needs live confirmation) is
+   very likely also what blocks sprinting during a real crossbow reload,
+   since it's the same underlying mechanism. Accepted trade-off: the
+   character briefly shows the real crossbow-reload pose during the
+   cooldown, since fists have no dedicated "reload" animation of their own
+   to reuse instead. `Player.GetActionProgress()` (what the vanilla HUD
+   progress bar already reads) is generic to whatever's at the front of
+   the queue regardless of `ActionType`, so the progress bar should just
+   work without any UI code of our own.
+
+   **UPDATE, same session**: cooldown duration is now a live BepInEx config
+   entry (`GrappleKnucklesPlugin.CooldownDuration`, section "Grapple"),
+   default `2f` matching the real vanilla hook's own `m_reloadTime`
+   (restoring the "normal" reload time per explicit direction, replacing
+   the earlier arbitrary `3f`). `GrappleCooldownPatch.QueueCooldown` reads
+   `.Value` fresh each call, not cached, so editing it live via
+   Configuration Manager (already in this test profile) should take effect
+   immediately, no relaunch needed.
+
+   **Still unresolved, live-tested and confirmed NOT showing the progress
+   bar**: queued successfully (confirmed via log - `QueueCooldown` always
+   found the queue empty right before adding, consistent with each
+   previous entry expiring normally before the next), but the user never
+   saw a visible cooldown bar. Added a manually-patched diagnostic
+   (`GrappleDebugPatch.HudUpdateActionProgress_Debug`, patched onto the
+   private `Hud.UpdateActionProgress`) that logs exactly what the HUD
+   itself reads (`text`/`progress`/`data.m_duration`/`data.m_time`) - not
+   yet re-tested with this diagnostic in place. `Hud.UpdateActionProgress`
+   (confirmed via decompile) only shows the bar when
+   `!string.IsNullOrEmpty(text) && data.m_duration > 0.5f` - our values
+   should clear that bar easily, so if the diagnostic shows sane values and
+   the bar still doesn't render, the issue is somewhere in
+   `m_actionBarRoot`/`m_actionProgress`'s own UI activation, not our data.
+
+   **Why no vanilla reload mechanism works for a melee-type secondary
+   attack** (worth keeping so this doesn't get re-investigated from
+   scratch): `Attack.m_reloadTime` is only ever *read* inside
+   `Player.QueueReloadAction()`, which only runs when the weapon's
+   **primary** attack has `m_requiresReload = true` - for
+   `ReloadTimeMultiplier`-style tuning on the secondary attack, this field
+   is completely inert. Setting `m_requiresReload = true` directly on the
+   secondary attack doesn't work either:
+   `Player.UpdateWeaponLoading()` (confirmed via decompile) only ever
+   checks the **primary** attack's flag to decide whether to call
+   `SetWeaponLoaded()` - since Knucklechains' primary is a plain punch
+   (`m_requiresReload = false`), this forces `m_weaponLoaded = null` every
+   single fixed-update frame regardless of the secondary attack's own
+   flag. `Attack.Start()`'s own gate
+   (`if (m_requiresReload && !IsWeaponLoaded())`) would then permanently
+   block the attack from ever starting again - not add a cooldown, just
+   break it outright. `m_blockReloadTime`/`Player.m_blockReload` doesn't
+   help either - it only gates whether a *new reload action* can be
+   queued, and reload actions only exist for primary-attack-reload
+   weapons; for a punch-primary weapon it's simply inert. Hence the
+   `MinorActionData` reuse above instead.
+4. **Flametal chain recolor** (`TryApplyFlametalChainTexture` in
+   `GrappleKnucklesPlugin.cs`), same `MaterialPropertyBlock` technique
+   already used for Shield of Frost's silver tint. Confirmed via the real
+   game files: FistGold's chain mesh uses a single material,
+   `nordfistweapon_mat` (Valheim's own custom weapon shader), and the real
+   Flametal item's own material, `flametal`, uses Unity's Standard shader
+   instead - different shaders, so this overrides only the
+   `_MainTex`/`_Color` properties (present on both) via
+   `Resources.FindObjectsOfTypeAll<Material>()` to find the real, already-
+   loaded `flametal` material at runtime, rather than swapping the whole
+   material (which would also swap the shader and lose whatever weather/
+   snow-cover integration the custom shader has that Standard doesn't).
+
+### Second polish round (2026-09-17, live-tested the first round)
+
+- **Chain material was the wrong Flametal, caught live in testing**: the
+  material literally named `"flametal"` turned out to be the pre-Ashlands
+  legacy "Ancient Metal" look (`_Color: {r: 1, g: 0.54, b: 0.37, a: 1}` -
+  orange, confirmed via the real .mat file) - the same old/legacy-vs-current
+  split as the `Flametal`/`FlametalNew` item prefabs, just on the material
+  side this time. The real current Flametal materials
+  (`FlametalArmor_Mat`, `Shield_Flametal_mat`, the world ore's own
+  `Flametal_Mat`) are all pure white `_Color` (1,1,1,1) - the real gray/
+  metallic look comes entirely from their `_MainTex`, not a tint. Now
+  defaults to `FlametalArmor_Mat` (confirmed same custom shader as
+  `nordfistweapon_mat`).
+- **Chain texture is now a live-editable dropdown config**
+  (`GrappleKnucklesPlugin.ChainTexture`, section "Grapple (dev tool)",
+  `AcceptableValueList<string>` of a curated real-material shortlist -
+  Configuration Manager renders this as an actual dropdown). Re-applies via
+  `ChainTexture.SettingChanged` whenever changed, no relaunch needed. This
+  is explicitly a TEMPORARY dev/tuning tool per direction, not meant to
+  ship as a real setting - remember to remove or hide it once a final
+  texture choice is made. Curated shortlist (excludes anything
+  Bloodgold-toned, since the base FistGold item already looks like that):
+  `FlametalArmor_Mat`, `Shield_Flametal_mat`, `Flametal_Mat`,
+  `WolfCapeChain` (a literal chain material, worth trying first),
+  `bronze`, `iron`, `copper`, `tin`, `blackmetal`, `barMat`, `silverbar`,
+  `tinbar`, `meteorite`.
+- **Grapple projectile damage explained, not a bug**: user observed ~40
+  damage on the grapple hit, expected it to match the vanilla hook.
+  Confirmed via decompile: `Attack.FireProjectileBurst()` computes the
+  fired projectile's `HitData` from `m_weapon.GetDamage()` - the WIELDER's
+  own weapon damage, not the projectile prefab's own `m_damage` field
+  (which is `0` on both the real hook and our clone). The real vanilla
+  `GrapplingHook` item's own base damage is `m_pierce: 10` (everything else
+  `0`) - a near-harmless utility tool. Grapple Knuckles' base damage is our
+  tuned ~95 blunt (the Ashlands-tier fist damage from the earlier data-
+  extraction pass), so the grapple throw naturally deals real fist-weapon
+  damage (~40 observed is plausibly that base after armor mitigation), not
+  the ~10 a vanilla hook throw would. **Fixed, per explicit direction**:
+  `GrappleAttackPatch.Projectile_ScaleGrappleDamage_Patch` (manually
+  patched onto `Projectile.Setup`, same PatchAll()-reliability reasoning as
+  `GrappleCooldownPatch` - not yet independently verified whether
+  `Projectile.Setup` specifically needs this workaround, used it
+  defensively) scales all ten `HitData.DamageTypes` fields by `0.1x`
+  whenever the wielded weapon is Grapple Knuckles, leaving the melee
+  punch's own damage untouched (only the fired projectile's `HitData` is
+  touched, before `Setup` stores the reference on the projectile). NOT YET
+  RE-TESTED IN-GAME.
+- **Sound effects - not yet investigated this round**, still open.
+- **Cooldown bar still not confirmed showing** - live-tested, found the
+  queue mechanics themselves working correctly (well-formed `Equip`/
+  `Unequip`/`Reload` entries flowing through with sane durations), but
+  every `Reload`-type entry actually captured by the HUD diagnostic that
+  session was for `$item_graplinghook` (the REAL vanilla hook, which the
+  user was also testing/comparing against), never
+  `$item_fistgold_grapple` - inconclusive on whether ours ever got shown,
+  since the diagnostic at the time only logged on queue-COUNT change,
+  which silently skips a same-count transition (e.g. vanilla hook's own
+  reload entry directly replaced by ours, both count=1). Fixed the
+  diagnostic to key on `(count, text, type)` instead - not yet re-tested
+  with this fix.
+
+### Cleanup checklist once the grapple is confirmed working
+
+All temporary, added purely to chase the secondary-attack bug this session:
+
+- Delete `GrappleDebugPatch.cs` entirely.
+- In `GrappleKnucklesPlugin.cs`'s `Awake()`: remove the `HARMONY_DEBUG` env
+  var line, the try/catch around `_harmony.PatchAll()` (restore it to a
+  plain unwrapped call), the `GetPatchInfo`/owner-logging block, and the
+  manual isolated `_harmony.Patch(...)` call that targets
+  `GrappleDebugPatch.ManualProbePostfix`. Restore `_harmony` to a
+  `private readonly` field initializer
+  (`private readonly Harmony _harmony = new Harmony(ModGUID);`) instead of
+  being assigned inside `Awake()`, since nothing needs it constructed early
+  anymore once `HARMONY_DEBUG` isn't being set. **Keep the
+  `GrappleCooldownPatch.RegisterManualPatch(_harmony)` call** - that one is
+  real functionality (the cooldown system), not debug tooling, and still
+  needs the manual-patch workaround since it also targets `Attack.Start`.
+- In `GrappleAttackPatch.cs`'s final `Logger.LogInfo(...)` call: the
+  `[GrappleDebug] final secondaryAttack: ...` suffix is fine to keep or trim
+  - it's genuinely useful ongoing diagnostic info, not just bug-chasing
+  cruft, but shorten it if it feels noisy once things are stable.
+- `GrappleKnucklesDev` profile's `BepInEx.cfg` has
+  `Logging.Console.Enabled = true` - fine to leave on for continued testing,
+  or set back to `false` (the r2modman default) once live debugging is done.
+
+## Current test-pass scope (2026-09-17)
+
+**Only Grapple Knuckles is registered** - per explicit direction, testing
+one item at a time rather than the whole mod at once. Everything else
+(Mountain Spiritfire Axe, Fenris/Ashlands/Deep North hybrid mage armor,
+Fire Dagger, Lightning Sword, Shield of Frost, Exploding Sledge, Prism
+Blade) is commented out of `GrappleKnucklesPlugin.cs`'s `Awake`/`OnDestroy`
+- code untouched, one line each to re-enable as each item gets verified.
+`ElementalWeapons.Init()`/`ShieldOfFrost.Init()`/`ExplodingSledge.Init()`
+are also commented out, since that's where those items' own `Init()`
+wires their `OnItemsRegistered`/`OnVanillaPrefabsAvailable` subscriptions -
+disabling `Init()` fully disables each group.
+
+**`GrappleDebugPatch.cs` is a TEMPORARY diagnostic file**, added 2026-09-17
+while chasing "no animation, no projectile on secondary input at all" after
+several rounds of fixes that should have addressed a weaker symptom. Logs
+`Humanoid.StartAttack` and `Attack.Start` to the live console specifically
+when the current weapon is Grapple Knuckles, to see exactly where the
+attack chain stops. **Delete this file once the real cause is found** -
+not meant to ship in the finished mod.
+
+## Decompile verification pass (2026-09-17)
+
+A later session had real local access: the user's actual Valheim install
+(`S:\SteamLibrary\steamapps\common\Valheim`, game version matching
+`assembly_valheim.dll` shipped there) and their r2modman profile's
+BepInExPack 5.4.2350 + Jotunn 2.30.0. `.NET 8 SDK` and `ilspycmd` were
+installed on the desktop machine to actually build the project and
+decompile the real assemblies, instead of relying on other mods'
+second-hand decompile dumps or web search.
+
+**Two real compile errors were found and fixed** (this project had never
+actually been built before this pass):
+
+1. `[HarmonyPatch(typeof(ObjectDB), nameof(ObjectDB.UpdateRegisters))]` in
+   three files (`GrappleAttackPatch.cs`, `ElementalWeaponAttackPatch.cs`,
+   `ExplodingSledge.cs`) failed to compile with `CS0117`. This was **not**
+   version drift - `ObjectDB.UpdateRegisters()` still exists, exactly as
+   named. The bug is that `nameof()` can't resolve a `private` member of
+   another class (C# excludes inaccessible members from `nameof` lookup
+   entirely, producing "does not contain a definition" rather than an
+   accessibility error), so `nameof` was simply the wrong tool for a
+   private-method Harmony target. Fixed by using the string literal
+   `"UpdateRegisters"` instead, which is the normal way to patch a private
+   method and was already the pattern used for `"UpdateBlock"`/
+   `"BlockAttack"` elsewhere in the mod.
+2. `new CustomStatusEffect(effect)` in `FenrisMageArmor.cs`,
+   `AshlandsHybridArmor.cs`, and `DeepNorthHybridArmor.cs` failed with
+   `CS7036` - real Jötunn API drift between the manifest-pinned 2.20.1 and
+   the actually-installed 2.30.0: the constructor now requires a
+   `fixReference` bool. Fixed by passing `fixReference: false`, since these
+   status effects are freshly created via `ScriptableObject.CreateInstance`
+   with no `Mock<T>` references to resolve (the constructor's own XML doc:
+   "If true references for Mock objects get resolved at runtime"). Also
+   bumped `manifest.json`'s pinned dependency versions to
+   `denikson-BepInExPack_Valheim-5.4.2350` / `ValheimModding-Jotunn-2.30.0`
+   to match what was actually built and tested against.
+
+**`assembly_lib.dll` does not exist in this Valheim version** - the
+`Libraries\` DLL list in `GrappleKnuckles.csproj` referenced it, but the
+user's actual `valheim_Data/Managed/` folder has no such file (only
+`assembly_valheim.dll`, `assembly_utils.dll`, and several unrelated
+`assembly_*` modules). Removed the dead reference; nothing in the mod's
+code actually used types from it.
+
+**With those three things fixed, `GrappleKnuckles.csproj` builds clean**
+(`dotnet build -c Release`) against the real game/BepInEx/Jotunn
+assemblies for the first time.
+
+**Field/method assumptions decompile-confirmed correct** (see individual
+file sections below for the ones that matter to each): `m_leftItem`,
+`m_rightItem`, `Humanoid.UseEitr(float)`, `Character.Damage(HitData)`,
+`Humanoid.UpdateBlock(float)`, `Humanoid.BlockAttack(HitData, Character)`,
+`Humanoid.StartAttack(Character, bool)`, `Attack.m_attackAnimation`/
+`m_attackStamina`/`m_attackEitr`/`m_reloadTime`/`m_blockReloadTime`/
+`m_attackProjectile`, `ItemDrop.ItemData.SharedData.m_movementModifier`/
+`m_armor`/`m_armorPerLevel`/`m_setName`/`m_setSize`/`m_setStatusEffect`/
+`m_secondaryAttack`, `ItemDrop.ItemData.m_variant`,
+`ItemDrop.ItemData.GetDamage(int, float)`, `HitData.DamageTypes`'s ten
+damage fields, `SE_Stats.m_eitrRegenMultiplier`/`m_staminaRegenMultiplier`/
+`m_dodgeStaminaUseModifier`/`m_percentigeDamageModifiers` (that's really
+the field's real spelling - "percentige", not "percentage"),
+`m_perfectBlockInterval` (`0.25f`), `m_timedBlockBonus`,
+`PrefabManager.CreateClonedPrefab`/`OnVanillaPrefabsAvailable`, and the
+`GrapplingPoint` class's existence.
+
+**Still not verifiable from the C# assembly alone** (as of the decompile
+pass) - these need either extracted asset/prefab data or an actual play
+session: Fracturing's real damage type, Embla/Caller's Eitr regen source
+(`m_equipStatusEffect` vs `m_setStatusEffect`), the silver-tint/bolt-scale/
+rotation-trick visual results, and all multiplayer networking behavior.
+Real weapon/armor tuning numbers were resolved by the extraction pass below.
+
+## HIGH PRIORITY, FIXED: item registration used the wrong Jotunn event
+
+First live in-game test (2026-09-17): Grapple Knuckles loaded fine (log
+showed `Cloned FistGold -> FistGold_Grapple`, no errors), but never
+appeared in the crafting list at an actual Black Forge, in a real loaded
+world, across two separate full test sessions (confirmed via Unity's own
+`Player.log` showing real world loads/saves - not a "never actually
+entered a world" false alarm).
+
+**Root cause**: every item file wired its cloning method to
+`ItemManager.OnItemsRegistered`, but Jotunn's official `TestMod` reference
+(`Valheim-Modding/Jotunn` repo, `TestMod/TestMod.cs`) never uses that event
+for item creation - every cloned-item example there (the closest analog:
+`evilSword`, cloned from `SwordBlackmetal` with `CraftingStation =
+CraftingStations.Workbench`) subscribes to
+`PrefabManager.OnVanillaPrefabsAvailable` instead. Decompiling
+`Jotunn.Managers.ItemManager` confirmed why this matters:
+`OnItemsRegistered` is invoked via a **Postfix** on `ObjectDB.Awake()`,
+which runs *after* Jotunn's own item-injection Prefix
+(`RegisterCustomData`, patched on the same method) already copied
+whatever was in Jotunn's internal tracking dictionary into that
+`ObjectDB` instance's `m_items`. An item added inside an `OnItemsRegistered`
+handler is added to Jotunn's tracking dictionary too late for *that*
+`Awake()` call's injection pass - it only becomes visible on some later
+`Awake()`/`CopyOtherDB()` call, if one happens to fire again.
+`PrefabManager.OnVanillaPrefabsAvailable` fires earlier and independently
+of ObjectDB's lifecycle, so items registered there are reliably present
+before any injection pass runs.
+
+**Fixed everywhere in this mod**, 2026-09-17: `GrappleKnucklesPlugin.cs`
+(`CloneKnucklechains`, plus the commented-out `MountainTierAxe.Clone`/
+`FenrisMageArmor.Clone`/`AshlandsHybridArmor.Clone`/
+`DeepNorthHybridArmor.Clone`/`PrismBlade.Clone` lines held back for the
+current one-item-at-a-time test pass), `ElementalWeapons.cs`
+(`CloneWeapons`), `ExplodingSledge.cs` (`CloneSledge`), and
+`ShieldOfFrost.cs` (`CloneShield`) all now subscribe their item-cloning
+method to `PrefabManager.OnVanillaPrefabsAvailable` instead of
+`ItemManager.OnItemsRegistered`. This was the same architectural mistake
+repeated across every single item file, not a one-off Grapple Knuckles bug
+- worth double-checking any *new* item added to this mod follows the
+`OnVanillaPrefabsAvailable` pattern too.
+
+**Not yet re-tested in-game** - this fix is a strong, doubly-confirmed
+theory (matches both the official reference pattern AND the decompiled
+Harmony patch ordering), but confirm Grapple Knuckles actually shows up in
+the crafting list next test before trusting it fully.
+
+## Real data extraction pass (AssetRipper, 2026-09-17)
+
+A background research pass extracted ground-truth values directly from
+`resources.assets` via AssetRipper (not wiki text, not community numbers) -
+see `GrappleKnuckles.csproj`'s Libraries for how to point AssetRipper at
+your own install if this needs re-running for a different game version.
+
+**Real fist weapon damage across every tier that has one** (base, quality
+1): `FistBjornClaw` (early) 25 slash; `FistFenrirClaw` (Mountain/Silver) 60
+slash; `FistBjornUndeadClaw` (Plains/BlackMetal) 20 slash + 60 pierce = 80
+total; `FistGold` (Deep North) 114 blunt. No Iron-, Mistlands-, or
+Ashlands-tier fist weapon exists in vanilla - confirms this mod's own
+earlier survey.
+
+**Real same-tier comparison weapons** (base, quality 1, total damage across
+all types): Bronze `SwordBronze` 35 / `AxeBronze` 80; Iron `SwordIron` 55 /
+`AxeIron` 110; Silver `SwordSilver` 105 / `MaceSilver` (Frostner) 95;
+BlackMetal `SwordBlackmetal` 95 / `AxeBlackMetal` 160; Mistlands
+`SwordMistwalker` 115 / `BattleaxeCrystal` 170; Ashlands `SwordDyrnwyn` 155
+/ `AxeJotunBane` 190 / `MaceEldner` 135 (pure blunt); Deep North `SwordGold`
+170 / `THSwordGold` (2H) 210 / `MaceGold` 170 (pure blunt) / `AxeGold` 266.
+
+**Real fist-vs-comparison-weapon damage ratio**: consistently **~0.6-0.7x**
+a same-tier one-handed sword/mace's raw damage (`FistFenrirClaw`/
+`SwordSilver` = 0.57; `FistBjornUndeadClaw`/`SwordBlackmetal` = 0.84;
+`FistGold`/`MaceGold`, a clean pure-blunt-vs-pure-blunt comparison, = 0.67
+exactly), dropping to ~0.4-0.5x against two-handed weapons. This is a real,
+consistent vanilla design pattern, not noise.
+
+**Applied to Grapple Knuckles' tuning** (`GrappleAttackPatch.cs`): the
+clone previously inherited `FistGold`'s real 114 blunt base damage
+untouched - genuine Deep North-tier damage on an Ashlands item, nowhere
+close to internally consistent. Now scaled to ~95 blunt (95/135 = 0.70
+against the real Ashlands pure-blunt one-hander `MaceEldner`, at the upper
+end of the real ratio band, matching the trend of higher-tier fists running
+closer to 0.7-0.8x). Scaled proportionally, not hardcoded, so it stays
+correct if `FistGold`'s own real stats ever change. The existing +40 pierce
+bonus on the grapple-projectile secondary attack is untouched - that's the
+utility/grapple hit, not the melee punch, and was already tuned
+independently "for fun."
+
+**Real armor values** (quality 1 / quality 4 max, per piece and set total) -
+correcting this mod's own wiki-sourced guesses, which the code already
+insulated against by scaling *relative* to whatever the clone inherits at
+runtime rather than hardcoding an absolute (so no runtime values were ever
+actually wrong - only the design commentary's stated justification was):
+`ArmorFenringChest`/`ArmorFenringLegs` (Fenris) 10/16 each, 20/32 set total
+- the guessed "community-sourced" numbers used to justify `ArmorScale =
+1.6f` were never checked against this. `ArmorMageChest_Ashlands`/
+`ArmorMageLegs_Ashlands` (Embla) 19/25 each, 38/50 set total - the mod's
+"~75" guess overshot the real max-quality total by about 50%.
+`ArmorDeepNorthMageChest`/`ArmorDeepNorthMagelegs` (Caller) 22/28 each,
+44/56 set total - the mod's "~22/piece" guess almost exactly matched the
+real *base*-quality value but undershot the real max-quality value. Worth
+re-examining whether `ArmorScale`/`WeightScale` in `FenrisMageArmor.cs`,
+`AshlandsHybridArmor.cs`, and `DeepNorthHybridArmor.cs` still hit the
+intended power level now that the real baselines are known - not yet done,
+needs a real comparison armor set at each tier (e.g. Carapace for
+Mistlands) that this pass didn't pull.
+
+**"Northern Vengeance" resolved**: the display name is real (confirmed via
+web search cross-referencing a wiki page) - the internal prefab is
+`StaffFrostOrbs` (+ `StaffFrostOrbsUncooked`, `Recipe_StaffFrostOrbs`, min
+station level 3), a Deep North frost blood-magic staff. Real VFX/child
+assets found: `vfx_FrostOrbs` (the orb visual GameObject),
+`staff_FrostOrbs_projectile`, `staff_FrostOrbs_aoe`, plus a standalone
+`Frost_Orbs` GameObject/material and `Frost_orbs_staff_mat`. **Design
+direction, per explicit user instruction (2026-09-17), not yet
+implemented**: reuse this VFX *as-is* (same visual) for both the parry proc
+(`ApplyFrostProc`) and the block-break burst (`SpawnFrostBurst`) in
+`ShieldOfFrostPatches.cs` - only the *damage* should be lower than
+`StaffFrostOrbs`' own, reflecting Shield of Frost's lower (Mistlands vs
+Deep North) tier. Whether `vfx_FrostOrbs` is a simple
+`PrefabManager.CreateClonedPrefab` job (same pattern as every other cloned
+projectile in this mod) or has its own attach-point/particle-system
+complexity wasn't checked - open a subtask to inspect its child components
+before implementing.
+
+**Not extracted / still open**: attack speed, stamina cost, and reload time
+for the comparison weapons (only spot-checked, so the ratios above are raw
+per-hit damage, not DPS); why `FistGold`'s `m_damagesPerLevel` scales
+"slash" while its base damage is pure blunt (observed as real vanilla data,
+not explained - this mod's clone inherits that quirk unchanged); Fracturing
+'s real damage type (separate open question above, not covered by this
+pass).
+
+## HIGH PRIORITY, FIXED: "Flametal" was the legacy pre-Ashlands item ("Ancient Metal")
+
+Live test, 2026-09-17: the Grapple Knuckles recipe showed a requirement
+called "Ancient Metal" in-game instead of Flametal. Researched and
+confirmed via AssetRipper against the user's own game files:
+`Flametal.prefab`'s own name token is `$item_flametal_old` - this is
+**legacy content**. When Ashlands shipped, old/pre-update Flametal got
+relabeled "Ancient Metal" in-game and is no longer used in any real recipe
+(per community research: "no implemented crafting recipes using Ancient
+ore"). The real, current, actually-obtainable Flametal is a **separate
+prefab**, `FlametalNew` (token `$item_flametal`).
+
+This mod was using the wrong one (`"Flametal"`) everywhere. **Fixed** in
+`GrappleKnucklesPlugin.cs`, `ElementalWeapons.cs`, and `ExplodingSledge.cs`
+- all three now use `"FlametalNew"`. Same legacy/current split likely
+doesn't apply to `FlametalOre` usage anywhere in this mod (not directly
+referenced), but worth remembering if a future item ever needs raw
+Flametal Ore - use `FlametalOreNew`, not `FlametalOre`.
+
+## HIGH PRIORITY, FIXED: grapple secondary attack - three compounding bugs
+
+Live test, 2026-09-17, iterated across several rounds as symptoms changed.
+Final root-caused state, all in `GrappleAttackPatch.cs`/
+`GrappleKnucklesPlugin.cs`, confirmed via decompiling `Attack.cs`/
+`CharacterAnimEvent.cs`/`GrapplingPoint.cs`/`Projectile.cs` and reading the
+real `GrapplingHook.prefab`/`FistGold.prefab`/`Projectile_GrapplingHook.prefab`/
+`GrapplingPoint.prefab` YAML directly:
+
+1. **Wrong animation, symptom "nothing happens" / later "doing the kick
+   animation instead of the basic attack."** `clonedAttack.m_attackAnimation`
+   was first overwritten with the primary punch's trigger (original code),
+   then swapped to leave Knucklechains' own kick trigger untouched (first
+   fix attempt), before landing on the actually-correct answer **per
+   explicit direction: reuse the primary/basic punch animation**, not the
+   kick. `Attack.m_attackAnimation` only selects which animator-trigger
+   plays; the real "fire the attack" call
+   (`CharacterAnimEvent.OnAttackTrigger()` -> `Character.OnAttackTrigger()`)
+   is invoked by a Unity Animation Event baked into that specific clip -
+   any clip with a working one (the punch's does) fires correctly once (2)
+   below is also fixed, regardless of which of the item's own real clips
+   it is.
+2. **`m_attackType` was never `Projectile`, symptom "nothing happens."**
+   `Attack.OnAttackTrigger()`'s dispatch (confirmed via decompile) is a
+   plain switch on `m_attackType`: melee types call `DoMeleeAttack()`,
+   `Projectile` calls `ProjectileAttackTriggered()` (the method that
+   actually spawns `m_attackProjectile`). Knucklechains' real kick is a
+   melee type (`m_attackType: 0` in `FistGold.prefab`'s own
+   `m_secondaryAttack`), so even a correctly-firing animation event never
+   reached the projectile-spawn code without this override.
+3. **Every other projectile-launch field was still the kick's, symptom
+   "projectile shows up but weakly launching in a small arc."** The kick's
+   own real `m_projectileVel` is `10` (an irrelevant leftover - kicks leave
+   `m_attackProjectile` null in the real prefab, so this field is never
+   actually used) versus the hook's real `40`, plus a dozen more fields
+   (accuracy, launch angle, hitTerrain, burst count, etc.) that were never
+   copied at all. **Fix, replacing all the earlier one-field-at-a-time
+   patches**: `Attack.Clone()` (a real vanilla method - `MemberwiseClone()`
+   over every field) clones the hook's ENTIRE real secondary-attack config
+   wholesale, then only `m_attackAnimation` (the punch, per (1)),
+   `m_attackProjectile` (our cloned projectile), and `m_reloadTime`
+   (intentional tuning) are overridden on top. Sidesteps ever missing
+   another field the same way again.
+
+**Fourth bug, symptom "projectile launches correctly now but still not
+actually grappling"** - a structural one, not a tuning gap. The flying
+projectile does **not** do the grapple-attach itself: `Projectile_GrapplingHook`'s
+own real `m_spawnOnHit` field (confirmed via the prefab YAML) references a
+**separate** prefab, `GrapplingPoint`, spawned fresh on impact - that's
+what actually does the pull/anchor logic. This mod was only cloning the
+flying projectile, so every Grapple Knuckles throw still spawned the
+**original, shared** `GrapplingPoint` prefab on hit. That prefab's
+`GrapplingPoint.m_equipCheck` field (an `ItemDrop` reference, confirmed via
+decompile of `GrapplingPoint.cs` and cross-referencing the real prefab's
+serialized GUID) is hardcoded to the real vanilla `GrapplingHook` item, and
+`GrapplingPoint.Update()` calls `Break(early: true)` every single frame
+`IsItemTypeEquiped(m_equipCheck.m_itemData)` fails - which compares by
+exact `SharedData.m_name` token, so it could never match while wielding
+`FistGold_Grapple`. This self-cancelled the grapple essentially the instant
+it started. **Fix**: `GrappleKnucklesPlugin.cs` now also clones
+`GrapplingPoint` (`ClonedGrapplingPoint`) alongside the projectile;
+`GrappleAttackPatch.cs` points the cloned projectile's
+`Projectile.m_spawnOnHit` at that clone instead of the original, and sets
+the clone's `GrapplingPoint.m_equipCheck` to Grapple Knuckles' own
+`ItemDrop` instead of the real hook's.
+
+**Not yet re-tested in-game** - all four fixes are decompile-and-real-
+prefab-data-backed, but confirm the full chain (animation plays, projectile
+launches at real hook speed/arc, hits terrain, and actually pulls the
+player without self-cancelling) on the next test pass.
+
 ## HIGH PRIORITY: Staff of Fracturing's real damage type is in doubt
 
 Both `ShieldOfFrostPatches.cs` (the block-break burst) and
@@ -288,13 +1115,15 @@ damage.
 
 ## Whole-mod gaps
 
-- **No localization file exists anywhere in this project.** Every item
-  name/description (`$item_fistgold_grapple`, `$item_fenrismage_chest`,
-  `$item_fire_dagger`, `$item_lightning_sword`, `$item_shield_of_frost`,
-  `$item_mountain_spiritfire_axe`, `$item_exploding_sledge`, etc.) is an
-  unlocalized token - in-game, these will likely show as the literal raw
-  string, not readable text, until a `Translations/English.json` (or
-  Jötunn's localization API) is added.
+- **Localization added, 2026-09-17** (`Localization.cs`): every item
+  name/description token used across the whole mod (including items
+  currently held back from the test pass) is now registered via
+  `LocalizationManager.Instance.GetLocalization().AddTranslation("English",
+  ...)`, called from `GrappleKnucklesPlugin.Awake()` - the non-obsolete
+  Jötunn API (`AddLocalization(string, Dictionary)` and `new
+  CustomLocalization()` are both marked `[Obsolete]` in the 2.30.0 API,
+  discovered while wiring this up). Names/descriptions are working titles,
+  not final flavor text - update freely.
 - Nothing in this mod has been run in an actual Valheim session. Every
   "confirmed" fact above was confirmed via someone else's source code, not
   by observing this mod's actual behavior.
@@ -329,41 +1158,53 @@ attach-and-done API. This needs meaningful engineering effort and visual
 iteration this remote environment can't do - left as an open idea for the
 desktop session.
 
-This is the highest-risk file in the mod - four distinct mechanics
-(continuous Eitr drain on a held input, a parry-detection proc, a
-block-break proc, and a rotation-swap trick for omnidirectional blocking),
-each landing on a real confirmed vanilla method/field, but several
-supporting assumptions were never independently re-verified this session:
+This was the highest-risk file in the mod. As of the 2026-09-17 decompile
+verification pass (see that section below), the core field/method
+assumptions are now confirmed rather than analogical guesses:
 
-- **`Humanoid.UseEitr(float)`** (the Eitr-drain-while-blocking patch) is an
-  assumption by analogy with the confirmed `UseStamina` pattern and the
-  confirmed `UpdateAttackBowDraw` Eitr-drain precedent - the exact method
-  name/signature wasn't independently re-verified this session.
-- **`m_leftItem`** as the private field holding the equipped shield is an
-  assumption by analogy with the `m_rightItem` assumption used elsewhere in
-  this mod (also never freshly confirmed). If wrong, every gating check in
-  `ShieldOfFrostPatches.cs` silently no-ops (treats the shield as never
-  equipped) rather than erroring - so a "nothing happens" bug here likely
-  means this field name is wrong.
-- **`Character.Damage(HitData)`** (used to apply the frost proc directly to
-  the parried attacker) is an extremely common pattern across Valheim
-  modding generally, but wasn't decompile-confirmed in this project's own
-  research threads specifically.
-- **The AoE burst is spawned via raw `UnityEngine.Object.Instantiate`**,
+- **`Humanoid.UseEitr(float)`** - confirmed: inherited virtual from
+  `Character` (`public virtual void UseEitr(float eitr)`), with `Player`
+  overriding it to drain over RPC for multiplayer sync. Calling it on a
+  `Humanoid`-typed instance dispatches correctly either way.
+- **`m_leftItem`** - confirmed: `protected ItemDrop.ItemData m_leftItem`
+  on `Humanoid`, holding the equipped left-hand/shield item.
+- **`Character.Damage(HitData)`** - confirmed: `public void Damage(HitData
+  hit)` on `Character`.
+- **`Humanoid.UpdateBlock(float)` / `BlockAttack(HitData, Character)`** -
+  confirmed: private/protected-override signatures match this file's
+  Harmony patches exactly (`UpdateBlock` is private, hence the
+  `"UpdateBlock"` string-literal patch target rather than `nameof`).
+- **The parry-detection condition has one small gap, now fixed**: vanilla's
+  real check is `m_timedBlockBonus > 1f && m_blockTimer != -1f &&
+  m_blockTimer < 0.25f` (`m_perfectBlockInterval` confirmed as `0.25f`).
+  This file's replica originally omitted the `m_blockTimer != -1f` guard -
+  since `m_blockTimer` sits at `-1` whenever not currently blocking, that
+  could misfire the frost proc as a "perfect parry" in the edge case where
+  `BlockAttack` fires while `m_blockTimer` is exactly `-1`. Fixed to match
+  vanilla exactly.
+- **The AoE burst is still spawned via raw `UnityEngine.Object.Instantiate`**,
   not through Valheim's own `ZNetScene` spawn path. The burst prefab
   carries networked components (`ZNetView`/`ZSyncTransform`, per earlier
   research on this same projectile type) - a raw `Instantiate` may not
   register/replicate correctly in multiplayer. Single-player should still
-  work. This is the single biggest open risk in this file.
-- **The omnidirectional-block rotation trick was never visually verified.**
-  It temporarily rotates the wielder to face directly away from an
-  off-angle hit for the duration of `BlockAttack`, then restores their real
-  rotation immediately after (same "swap state, call original, restore"
-  pattern as `QualityTransferPatch.cs`, applied to rotation instead of item
-  data) - confirmed to satisfy vanilla's exact frontal-arc check
-  (`Vector3.Dot(hit.m_dir, transform.forward) > 0`), but a single-frame
-  rotation snap could be visually noticeable or interact oddly with camera/
-  animation systems in ways static code review can't catch.
+  work. This remains the single biggest open risk in this file - decompile
+  access confirms the field names involved, not runtime networking
+  behavior, which needs an actual play session (ideally a dedicated server
+  test, not just single-player) to verify.
+
+**Omnidirectional blocking removed per explicit direction ("too fiddly")**,
+2026-09-17, before ever being tried in-game. It was a rotation-swap trick
+on `BlockAttack` (temporarily facing the wielder away from an off-angle hit
+so it read as frontal, then restoring rotation immediately after - same
+"swap state, call original, restore" pattern `QualityTransferPatch.cs` used
+for item data). The sign logic was decompile-verified correct against the
+real method (`if (Vector3.Dot(hit.m_dir, transform.forward) > 0f) return
+false;` - a positive dot rejects the block, so rotating to force a negative
+dot was the right direction), so if this is ever revisited the design was
+sound; it just added more moving parts than the "too fiddly" bar allowed
+for a first pass. Only three mechanics remain in `ShieldOfFrostPatches.cs`:
+Eitr drain while blocking, frost proc on parry, and the block-break AoE.
+
 - **"Double damage on parry" is deliberately NOT implemented as custom
   code.** Research confirmed this already happens automatically in vanilla
   for any successful parry against any shield (a perfect block staggers
@@ -384,6 +1225,24 @@ supporting assumptions were never independently re-verified this session:
   shield's block/parry/break effects - it reuses the frost burst
   projectile's own VFX for the break effect only. A bubble visual is still
   an open idea, not implemented.
+- **Design direction, per explicit user direction (2026-09-17), not yet
+  implemented**: reuse the real vanilla **"Northern Vengeance" frost-orb
+  VFX as-is** (same visual, not a scaled-down/simplified one) for both the
+  parry proc (`ApplyFrostProc`) and the block-break burst
+  (`SpawnFrostBurst`) in `ShieldOfFrostPatches.cs` - only the **damage**
+  should be lower than Northern Vengeance's own, reflecting that Shield of
+  Frost is a lower tier (Mistlands) than Northern Vengeance (Deep North).
+  Northern Vengeance is a real Deep North blood-magic staff whose cast
+  throws a frost orb with its own VFX already in the base game - a
+  background research pass this session was asked to locate its actual
+  prefab/VFX child-object names via AssetRipper (see whatever it reported;
+  if that didn't happen yet, this still needs a decompile/asset-extraction
+  pass to find the real prefab name before it can be cloned, same pattern
+  already used for the Fracturing splinter and Dundr/Embers bolt
+  projectiles elsewhere in this mod - the visual itself is NOT scaled down,
+  only the damage value applied to the cloned projectile). This uses the
+  same `PrefabManager.CreateClonedPrefab` approach already used for
+  every other cloned projectile in this mod, not a from-scratch VFX build.
 
 ## CORRECTION: GrapplingHook is Mistlands tier, not Deep North
 

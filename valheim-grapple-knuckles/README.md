@@ -5,19 +5,25 @@ grown from a single item into a small "fast mage" toolkit, tiered to match
 real vanilla elemental-weapon progression (confirmed via a dedicated
 survey - see `CLAUDE.md` for the full research trail):
 
+**Test-pass status (2026-09-17): only Grapple Knuckles is registered.**
+Testing one item at a time rather than the whole mod at once - everything
+else below is held back (code untouched, just commented out of
+`GrappleKnucklesPlugin.cs`'s `Awake`/`OnDestroy`) until each is verified
+working in-game.
+
 | Tier | Item | Notes |
 |---|---|---|
-| Mountain / Silver | `MountainTierAxe` - fire+spirit axe | No Eitr spell (Eitr doesn't exist yet); pairs with Fenris Mage armor |
-| Mistlands | Fenris Mage armor | Fast-mage hybrid armor set (built from the light Fenris set) |
-| Mistlands | Fire Dagger | Eitr-costed fire bolt secondary |
-| Mistlands | Shield of Frost | Eitr-channel block, parry/break procs |
+| Mountain / Silver | `MountainTierAxe` - fire+spirit axe | No Eitr spell (Eitr doesn't exist yet); pairs with Fenris Mage armor. **Held back, not registered** |
+| Mistlands | Fenris Mage armor | Fast-mage hybrid armor set (built from the light Fenris set). **Held back, not registered** |
+| Mistlands | Fire Dagger | Eitr-costed fire bolt secondary. **Held back, not registered** |
+| Mistlands | Shield of Frost | Eitr-channel block, parry/break procs. **Held back, not registered** |
 | Mistlands | Grappling Hook | Unmodified vanilla item - just the normal progression step |
-| Ashlands | Ashlands Hybrid Armor | Fast-mage hybrid armor set (built from the real "Embla" mage armor) |
-| Ashlands | Lightning Sword | Reuses Dundr's own bolt, tuned faster/weaker |
-| Ashlands | Exploding Sledge | Frost splinter-burst secondary |
-| Ashlands | Grapple Knuckles | The original item - the Ashlands "upgrade" to the Mistlands hook |
-| Deep North | Deep North Hybrid Armor | Fast-mage hybrid armor set (built from the real "Caller" mage armor) |
-| Deep North | Prism Blade | Endgame weapon; cycles active element (fire/frost/lightning/poison) on secondary attack |
+| Ashlands | Ashlands Hybrid Armor | Fast-mage hybrid armor set (built from the real "Embla" mage armor). **Held back, not registered** |
+| Ashlands | Lightning Sword | Reuses Dundr's own bolt, tuned faster/weaker. **Held back, not registered** |
+| Ashlands | Exploding Sledge | Frost splinter-burst secondary. **Held back, not registered** |
+| Ashlands | Grapple Knuckles | The original item - the Ashlands "upgrade" to the Mistlands hook. **Active - the only item in this test pass** |
+| Deep North | Deep North Hybrid Armor | Fast-mage hybrid armor set (built from the real "Caller" mage armor). **Held back, not registered** |
+| Deep North | Prism Blade | Endgame weapon; cycles active element (fire/frost/lightning/poison) on secondary attack. **Held back, not registered** |
 
 **Grapple Knuckles** (`FistGold_Grapple`) is the intended narrative:
 you get the plain vanilla **Grappling Hook** (`GrapplingHook`) easily in
@@ -48,6 +54,15 @@ level to carry over from an ingredient; the crafted item starts at quality
 1 like any other new recipe output.
 
 ## Prism Blade (`PrismBlade.cs` / `PrismBladePatches.cs`)
+
+**Held back from this test pass, 2026-09-17**: `PrismBlade.Clone` is
+commented out of `GrappleKnucklesPlugin.cs`'s registration, so this item
+won't appear in-game for now - the user wants to test Grapple Knuckles and
+the other items first and has separate ideas for Prism Blade to revisit
+later. The code below is untouched and still builds; only the registration
+call is disabled (see `GrappleKnucklesPlugin.cs`'s `Awake`/`OnDestroy`).
+The Harmony patches in `PrismBladePatches.cs` stay active but are harmless
+no-ops for every other item, since both gate on `IsPrismBlade()`.
 
 An endgame Deep North two-handed sword (clones `THSwordGold`, "Nord
 Greatsword") whose active elemental damage type cycles on secondary attack
@@ -92,16 +107,36 @@ weapon slot field, `UseEitr`'s exact signature, and whether
 Rather than Harmony-patching `Humanoid.StartAttack` and reimplementing the
 hook's raycast/pull/rope physics, `GrappleAttackPatch.cs` patches
 `ObjectDB.UpdateRegisters` (the same extension point other Valheim mods use
-to tweak item stats after load) and copies the real `GrapplingHook` item's
-own `m_secondaryAttack` config (stamina cost and reload time) onto the
-clone's secondary attack slot, pointed at a **cloned** grapple projectile
-(see below). Since `m_attackProjectile` is what actually drives the vanilla
-`GrapplingPoint` component (rope `LineRenderer`, pull-toward-anchor logic),
-this reuses vanilla's launch mechanic and VFX wholesale — no physics
-reimplementation. The secondary attack also reuses the item's own
-primary/light attack animation trigger (`Attack.m_attackAnimation`,
-confirmed field), so it plays as "punch, then a hook flies out" rather than
-a crossbow-draw animation on bare fists.
+to tweak item stats after load) and **wholesale-clones** the real
+`GrapplingHook` item's own `m_secondaryAttack` config via `Attack.Clone()`
+(a real vanilla method) onto the clone's secondary attack slot, pointed at
+a **cloned** grapple projectile (see below) — every projectile-launch
+field (velocity, accuracy, spawn geometry, etc.) comes along automatically
+this way, rather than needing to be hand-picked one at a time. Only
+`m_attackAnimation` (Knucklechains' own basic punch, per explicit
+direction — not the hook's crossbow animation, not Knucklechains' kick),
+`m_attackProjectile` (our own cloned projectile), and `m_reloadTime`
+(intentional "faster" tuning) are overridden on top of the clone.
+`m_attackType` also needs to come along as `Projectile` from that clone -
+`Attack.OnAttackTrigger()`'s dispatch is a plain switch on this field, and
+an earlier version that started from Knucklechains' own kick Attack
+instead left it at a melee type, so the projectile-spawn code was never
+reached at all regardless of animation. Confirmed via decompile,
+2026-09-17 — see `CLAUDE.md` for the full history of this fix (it went
+through a few wrong turns before landing here).
+
+**The flying projectile isn't what actually grapples.** Confirmed via the
+real `Projectile_GrapplingHook.prefab` data: on hit, it spawns a
+**separate** prefab, `GrapplingPoint` (rope `LineRenderer`,
+pull-toward-anchor logic, and — critically — a per-frame check that
+self-cancels the grapple if you're not holding a matching item). This mod
+now clones `GrapplingPoint` too, not just the flying projectile
+(`GrappleKnucklesPlugin.ClonedGrapplingPoint`), and points the cloned
+projectile's `m_spawnOnHit` at that clone instead of the original shared
+one — otherwise every throw would still spawn the vanilla `GrapplingPoint`,
+whose equip-check is hardcoded to the real `GrapplingHook` item and would
+immediately break the grapple while wielding Grapple Knuckles instead. See
+`CLAUDE.md` for the full mechanism.
 
 **Not yet attempted: anchoring the rope's visual start point at the
 wrists.** That likely needs a custom attach-point Transform on the fist
@@ -123,16 +158,26 @@ independent copy before adding the pierce bonus to it.
 
 ## Damage / feel tuning
 
-All in `GrappleAttackPatch.cs`, all deliberately tuned for fun over strict
-balance, per explicit request:
+All in `GrappleAttackPatch.cs`. The base melee damage is now data-driven
+from real extracted game values (AssetRipper pass, see `CLAUDE.md`); the
+rest is deliberately tuned for fun over strict balance, per explicit
+request:
 
+- **Base melee damage scaled from `FistGold`'s real 114 blunt down to ~95
+  blunt** (`SharedData.m_damages.m_blunt`, `BaseBluntDamageScale = 95f /
+  114f`, applied proportionally so it stays correct if `FistGold`'s own
+  stats change). 114 blunt is `FistGold`'s real, ground-truth Deep North
+  damage - too strong for an Ashlands item. 95 sits at 0.70x the real
+  Ashlands pure-blunt one-hander (`MaceEldner`, 135 blunt), consistent with
+  real vanilla fist weapons across every tier landing ~0.6-0.7x (sometimes
+  up to 0.84x) a same-tier one-hander's damage - a real, researched pattern
+  now, not a guess.
 - **+40 pierce damage on the grapple projectile only** (`Projectile.m_damage.m_pierce`
-  on the cloned projectile, not the item's melee `m_damages`, so the fists'
-  regular punches are unaffected). Compensates for forgoing
-  Frostfire/Thunderblood's elemental damage. This number is a starting
-  point for playtesting, not a researched balance target — the enchanted
-  variants' real damage figures could only be corroborated via web search
-  snippets, not primary source.
+  on the cloned projectile, separate from the melee `m_damages` above).
+  Compensates for forgoing Frostfire/Thunderblood's elemental damage. This
+  number is still a starting point for playtesting, not a researched
+  balance target — the enchanted variants' real damage figures could only
+  be corroborated via web search snippets, not primary source.
 - **Reload time cut to 40%** of the vanilla hook's (`ReloadTimeMultiplier = 0.4f`),
   framed as "a little faster to grapple" than the plain Mistlands hook,
   matching the item's Ashlands-upgrade narrative.
@@ -143,11 +188,19 @@ balance, per explicit request:
 
 **Status:** item clone/recipe, attack-wiring (including the cloned
 projectile, animation reuse, and Black Forge station), and all the
-damage/feel tuning above are implemented. Untested in-game (no local
-Valheim install available in this environment) — treat this as a first
-pass to verify, not a finished/verified mod.
+damage/feel tuning above are implemented, and the project now **builds
+clean** against the user's real game/BepInEx/Jötunn assemblies (see
+`CLAUDE.md`'s decompile verification pass). Still untested in an actual
+running game — treat this as a first pass to verify in-game, not a
+finished/verified mod.
 
 ## Fenris Mage armor (`FenrisMageArmor.cs`)
+
+**Held back from this test pass, 2026-09-17**: `FenrisMageArmor.Clone` is
+commented out of `GrappleKnucklesPlugin.cs`'s registration, along with the
+Ashlands/Deep North hybrid armors below - the user wants to develop the
+mage/hybrid armor ideas further before testing them. Code is untouched and
+still builds; only registration is disabled.
 
 A second, independent item set: a "fast mage" hybrid cloned from vanilla
 **Fenris armor** (`ArmorFenringChest` + `ArmorFenringLegs` — the only two
@@ -209,6 +262,10 @@ revisiting.
 mod.
 
 ## Ashlands & Deep North Hybrid Armor (`AshlandsHybridArmor.cs` / `DeepNorthHybridArmor.cs`)
+
+**Held back from this test pass** - see the Fenris Mage armor section
+above; same reasoning, both `AshlandsHybridArmor.Clone` and
+`DeepNorthHybridArmor.Clone` are commented out of registration.
 
 Fast-mage hybrid armor for the other two tiers, filling the role Fenris
 Mage Armor fills at Mountain tier - but approached from the opposite
@@ -298,18 +355,16 @@ Gland + Refined Eitr (Staff of Frost's real materials) - useful against
 the Seekers' ranged fire attacks. A "frost enchant glow" VFX was requested
 too but deliberately not attempted - the only real precedent found is a
 whole dedicated particle-rig mod, not a simple attach; left for the
-desktop session where the result can actually be seen. Four mechanics,
-each hooked onto a real confirmed vanilla method rather than
-reimplemented:
+desktop session where the result can actually be seen. There's also a real
+in-game precedent worth checking first: the vanilla Deep North item
+"Northern Vengeance" already ships a frost-orb VFX, which may be clonable
+directly instead of building a new particle rig. Three mechanics, each
+hooked onto a real confirmed vanilla method rather than reimplemented:
 
 - **Channels Eitr while blocking** instead of vanilla's zero-cost idle
   block, mirroring the confirmed real precedent for continuous per-tick
   resource drain on a held input (`Player.UpdateAttackBowDraw()`'s Eitr
   drain while charging a bow).
-- **Blocks from all directions**, not just the frontal ~180° arc vanilla
-  shields are limited to (confirmed exact gating check found via decompile)
-  - via a temporary rotation trick during the block check, restored
-    immediately after.
 - **Frost proc on a successful parry.** Deliberately does *not* implement
   "double damage" as custom code - research confirmed vanilla already does
   this automatically for any parry against any shield (a perfect block
@@ -321,13 +376,16 @@ reimplemented:
   technique as the other weapons, scaled down and spawned at the wielder's
   position.
 
-**This is the highest-risk file in the mod** - several supporting field/
-method names (`Humanoid.UseEitr`, `m_leftItem`, `Character.Damage`) are
-reasonable assumptions by analogy with confirmed patterns elsewhere, not
-independently re-verified, and the AoE burst spawns via a raw
-`Object.Instantiate` rather than Valheim's own network-aware spawn path,
-which may not replicate correctly in multiplayer. Full breakdown in
-`CLAUDE.md`.
+`Humanoid.UseEitr`, `m_leftItem`, `Character.Damage`, and the
+`UpdateBlock`/`BlockAttack` patch targets were all decompile-confirmed
+against the user's real `assembly_valheim.dll` (see CLAUDE.md). The
+remaining open risk: the AoE burst spawns via a raw `Object.Instantiate`
+rather than Valheim's own network-aware spawn path, which may not
+replicate correctly in multiplayer (single-player should be fine). An
+earlier omnidirectional-blocking mechanic (a rotation trick to bypass
+vanilla's frontal-arc block check) was designed and confirmed sign-correct,
+then dropped per explicit direction as too fiddly before ever being tried
+in-game.
 
 **Status:** implemented, untested in-game.
 
@@ -451,8 +509,8 @@ Copy the built `GrappleKnuckles.dll` into `<Valheim install>/BepInEx/plugins/Gra
 - `ShieldOfFrost.cs` - clones the shield item and the frost burst
   projectile used for the block-break effect.
 - `ShieldOfFrostPatches.cs` - Harmony patches on `Humanoid.UpdateBlock`/
-  `BlockAttack` for the Eitr-channel, frost-on-parry, break-AoE, and
-  omnidirectional-block mechanics.
+  `BlockAttack` for the Eitr-channel, frost-on-parry, and break-AoE
+  mechanics.
 - `MountainTierAxe.cs` - clones `AxeIron` into a Silver-tier fire+spirit
   axe with scaled-up damage, no Eitr spell.
 - `ExplodingSledge.cs` - clones `SledgeGold` and a splinter burst

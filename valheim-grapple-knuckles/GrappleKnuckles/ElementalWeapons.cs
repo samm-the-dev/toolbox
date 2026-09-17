@@ -54,7 +54,10 @@ namespace GrappleKnuckles
 
         private const string SurtlingCorePrefabName = "SurtlingCore";
         private const string FreezeGlandPrefabName = "FreezeGland";
-        private const string FlametalPrefabName = "Flametal";
+        // "Flametal" is the pre-Ashlands-update legacy prefab ("Ancient
+        // Metal" in-game, $item_flametal_old) - use "FlametalNew"
+        // ($item_flametal), the real current item. See GrappleKnucklesPlugin.cs.
+        private const string FlametalPrefabName = "FlametalNew";
         private const string BloodstonePrefabName = "GemstoneRed"; // "Bloodstone"
         private const string CharredBonePrefabName = "CharredBone";
         private const string RefinedEitrPrefabName = "Eitr";
@@ -81,13 +84,15 @@ namespace GrappleKnuckles
 
         public static void Init()
         {
-            ItemManager.OnItemsRegistered += CloneWeapons;
+            // Item cloning uses OnVanillaPrefabsAvailable, not
+            // ItemManager.OnItemsRegistered - see GrappleKnucklesPlugin.cs.
+            PrefabManager.OnVanillaPrefabsAvailable += CloneWeapons;
             PrefabManager.OnVanillaPrefabsAvailable += CloneBoltProjectiles;
         }
 
         public static void Dispose()
         {
-            ItemManager.OnItemsRegistered -= CloneWeapons;
+            PrefabManager.OnVanillaPrefabsAvailable -= CloneWeapons;
             PrefabManager.OnVanillaPrefabsAvailable -= CloneBoltProjectiles;
         }
 

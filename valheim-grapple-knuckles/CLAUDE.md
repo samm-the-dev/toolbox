@@ -105,13 +105,64 @@ mismatched game versions, or just wrong.
   piece, no other materials) - almost certainly too cheap; needs real
   balancing.
 
+## ElementalWeapons.cs / ElementalWeaponAttackPatch.cs
+
+- **The mesh reskin (`TryReskinMesh`) is the single riskiest thing in this
+  mod.** It clones `KnifeSkollAndHati` (for its dual-blade animation) and
+  tries to swap its blade mesh/material for `KnifeGold`'s (Nord Dagger), by
+  matching `MeshFilter`/`SkinnedMeshRenderer` components in child-order
+  between the two prefabs. This is a real, precedented technique (confirmed
+  via the `CustomMeshes` mod), and confirmed decoupled from animation - but
+  whether Skoll and Hati's blades are skinned/bone-rigged meshes was never
+  confirmed, and if they are, a mismatched skeleton between the two prefabs
+  could produce a badly distorted result rather than a clean reskin. It
+  degrades gracefully (logs a warning, keeps the original Skoll-and-Hati
+  appearance) on any renderer-count mismatch or exception, but "doesn't
+  crash" isn't the same as "looks right" - check the BepInEx log for the
+  reskin warning/info line, then look at the item in-game.
+- **Essence/Eitr upgrade cost numbers are placeholders.** The real vanilla
+  essence cost to enchant Knucklechains into Frostfire/Thunderblood
+  couldn't be found from this environment (recipe requirement amounts are
+  recipe-asset data, not decompiled C#, and wiki sites that would have them
+  are blocked here) - `BaseVanillaEnchantEssenceCost = 2` in
+  `ElementalWeapons.cs` is a guess to double from, per explicit "double
+  essences" request. Correct this constant against the real recipe first,
+  then the derived `UpgradeEssenceCost` follows automatically.
+- Base recipe quantities (2x Nord Dagger + 1x Frostfire Essence per dagger;
+  1x Nord Sword + 2x Thunderblood Essence for the sword) came directly from
+  the user, not research - not independently verified, but also not a
+  guess on my part.
+- Secondary attack numbers (10 Eitr cost, 5 stamina, 2s reload) and
+  elemental damage bonuses (+20 fire/frost/lightning) are arbitrary
+  starting points, same as every other tuning number in this mod.
+- The three bolt projectiles are cloned at half scale
+  (`BoltScale = 0.5f`) via the same `PrefabManager.CreateClonedPrefab`
+  pattern as the grapple hook - confirmed technique, but the *visual*
+  result of scaling a staff projectile prefab down (does the VFX/particle
+  system scale proportionally, or look broken at non-1x scale?) was never
+  checked.
+- `Attack.m_attackEitr` is decompile-confirmed as a real field, but whether
+  Eitr actually gets consumed/checked correctly for a *melee* weapon's
+  secondary attack (as opposed to a staff's primary attack, which is what
+  every real Eitr-costed vanilla item actually is) was never confirmed -
+  this mod is the first thing giving a `OneHandedWeapon`/`TwoHandedWeapon`-
+  type item an Eitr cost, which might behave differently than expected
+  (e.g. no Eitr-cost UI indicator, since that UI may be staff-specific).
+- No dual-wield system exists in vanilla (confirmed) - the fire/frost
+  "daggers" are each a single `TwoHandedWeapon`-type item (Skoll and Hati's
+  own type), not two independently equipped one-handed weapons. If that's
+  not the feel you want in practice, the alternative is cloning plain
+  `KnifeGold` directly (skip the reskin entirely, since it'd already be the
+  right model) at the cost of losing the dual-blade animation.
+
 ## Whole-mod gaps
 
 - **No localization file exists anywhere in this project.** Every item
   name/description (`$item_fistgold_grapple`, `$item_fenrismage_chest`,
-  etc.) is an unlocalized token - in-game, these will likely show as the
-  literal raw string, not readable text, until a `Translations/English.json`
-  (or Jötunn's localization API) is added.
+  `$item_fire_dagger`, `$item_frost_dagger`, `$item_lightning_sword`, etc.)
+  is an unlocalized token - in-game, these will likely show as the literal
+  raw string, not readable text, until a `Translations/English.json` (or
+  Jötunn's localization API) is added.
 - Nothing in this mod has been run in an actual Valheim session. Every
   "confirmed" fact above was confirmed via someone else's source code, not
   by observing this mod's actual behavior.

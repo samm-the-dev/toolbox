@@ -156,6 +156,60 @@ revisiting.
 **Status:** implemented, untested in-game, same caveats as the rest of this
 mod.
 
+## Elemental weapons (`ElementalWeapons.cs` / `ElementalWeaponAttackPatch.cs`)
+
+Three more mage-flavored melee weapons: a **Fire Dagger** and a **Frost
+Dagger** (each cloned from `KnifeSkollAndHati` for its dual-blade swing
+animation - vanilla has no true off-hand dual-wield slot, confirmed - then
+best-effort reskinned to look like `KnifeGold`/"Nord Dagger" instead), and
+a **Lightning Sword** (cloned from `SwordGold`/"Nord Sword"). Each weapon's
+secondary attack fires a small, Eitr-costed bolt - a scaled-down clone of a
+real vanilla staff projectile, same "reuse vanilla's own spell/VFX instead
+of reimplementing it" approach as Grapple Knuckles' hook launch:
+
+- Fire Dagger's bolt clones "Staff of Embers"' projectile
+  (`staff_fireball_projectile`).
+- Frost Dagger's bolt clones "Staff of Fracturing"' projectile
+  (`staff_clusterbombstaff_projectile`).
+- Lightning Sword's bolt clones "Dundr" the lightning staff's projectile
+  (`staff_lightning_projectile`).
+
+All three are cloned at half scale and wired via the same
+`ObjectDB.UpdateRegisters`-postfix pattern used for Grapple Knuckles, with
+`Attack.m_attackEitr` (confirmed real field, alongside the already-used
+`m_attackStamina`) giving the secondary attack an Eitr cost instead of a
+pure stamina one - the first Eitr-gated melee attack in this mod.
+
+Each dagger gets a flat elemental damage bonus (+20 fire or +20 frost on
+`SharedData.m_damages`) rather than a separate on-hit effect: elemental
+damage inherently procs the matching vanilla status effect
+(burning/freezing) once it's above zero, the same mechanism the real
+Frostfire-enchanted weapons use, so no extra wiring is needed. The
+Lightning Sword gets +20 lightning damage the same way. Since the design
+settled on two separate daggers rather than one alternating weapon, there's
+no need for a persistent per-cast "which element is next" toggle (which
+would have been awkward anyway - vanilla items have no generic per-instance
+custom-data field to store that in).
+
+Recipes: 2x Nord Dagger + 1x Frostfire Essence per dagger; 1x Nord Sword +
+2x Thunderblood Essence for the sword; all at the Black Forge. Upgrading
+costs additional essence (`RequirementConfig.AmountPerLevel`, confirmed to
+map directly to vanilla's own per-quality-level resource scaling - no
+custom logic needed) plus some Refined Eitr. **The exact upgrade numbers
+are placeholders** - the real vanilla essence cost to enchant Knucklechains
+(which "double essences" was meant to be relative to) wasn't reachable from
+this research environment; see `CLAUDE.md`.
+
+**Biggest open risk:** the mesh reskin from Skoll and Hati to Nord Dagger's
+appearance is a real, precedented technique but was never visually
+verified - if the daggers' blades are skinned/bone-rigged meshes rather
+than static ones, the swap could look distorted rather than clean. Falls
+back gracefully to Skoll and Hati's own appearance on any mismatch rather
+than breaking, but check this first in-game. Full details in `CLAUDE.md`.
+
+**Status:** implemented, untested in-game, same caveats as the rest of this
+mod - see `CLAUDE.md` for the full list of what to verify.
+
 ## Dev environment setup
 
 You need your own legally-owned copy of Valheim; none of the game or
@@ -230,5 +284,12 @@ Copy the built `GrappleKnuckles.dll` into `<Valheim install>/BepInEx/plugins/Gra
   effects for per-piece Eitr regen and the set's stamina regen bonus. No
   Harmony patch needed for this one - set bonuses are stock vanilla
   behavior once the right `SharedData` fields are set.
+- `ElementalWeapons.cs` - clones the Fire/Frost Dagger (from
+  `KnifeSkollAndHati`, reskinned toward `KnifeGold`) and Lightning Sword
+  (from `SwordGold`), their recipes, elemental damage, and the cloned/
+  scaled-down bolt projectiles.
+- `ElementalWeaponAttackPatch.cs` - Harmony patch on `ObjectDB.UpdateRegisters`
+  that wires each weapon's secondary attack to its bolt projectile with an
+  Eitr cost.
 - `manifest.json` - Thunderstore package manifest.
 - `Libraries/` - local-only reference DLLs (gitignored, not committed).

@@ -43,9 +43,10 @@ namespace GrappleKnuckles
     {
         private const float ProjectilePierceDamageBonus = 40f;
 
-        // Halved from vanilla on purpose - this mod is meant to be more fun
-        // than balanced.
-        private const float ReloadTimeMultiplier = 0.5f;
+        // Faster than the plain vanilla hook on purpose - this mod is meant
+        // to be more fun than balanced, and framed as "a little faster to
+        // grapple" than the Mistlands hook it's an Ashlands upgrade of.
+        private const float ReloadTimeMultiplier = 0.4f;
 
         // +10% movement speed while equipped, deliberately unbalanced/for
         // fun per explicit request.

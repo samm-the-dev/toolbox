@@ -34,6 +34,19 @@ effects.
 
 ## GrappleKnucklesPlugin.cs / GrappleAttackPatch.cs
 
+**Re-tiered to Ashlands** per explicit direction, after the
+`GrapplingHook`-tier correction below made it possible: the intended
+narrative is "get the plain Grappling Hook easily in Mistlands, then
+upgrade to this fist weapon in Ashlands." The recipe deliberately does
+**not** require a real `FistGold` (that would gate an Ashlands/pre-Deep-
+North item behind Deep North) - `FistGold` is only the Jötunn `CustomItem`
+clone source for model/mechanics, priced instead with `GrapplingHook` +
+Flametal + Charred Bone (the same Ashlands material family used elsewhere
+in this mod). The old `QualityTransferPatch.cs` (which carried a consumed
+`FistGold`'s quality onto the crafted item) was **removed** as dead code
+once the recipe stopped consuming a real `FistGold` - there's nothing left
+for it to transfer from.
+
 - **Biggest unverified assumption**: Valheim's attack-animation-event
   callback that actually fires the configured `Attack` is generic across
   weapon/animation types, so Knucklechains' own punch animation clip still
@@ -50,21 +63,11 @@ effects.
   confirmed via decompiled source dumps (`porohkun/ValheimMjod`,
   `m3talstorm/valhiem_server`) cross-checked against real open-source mods
   that reference the same fields - solid, but still second-hand.
-- `ObjectDB.UpdateRegisters` and `InventoryGui.DoCrafting(Player)` are both
-  **private methods** patched by name/signature. Private methods are the
-  most likely things to get silently renamed or restructured between game
-  versions - confirm both still exist with these signatures in 1.0.7, and
-  that Harmony successfully patches them (check the BepInEx log on startup
-  for patch failures).
-- `QualityTransferPatch.cs` reads `InventoryGui`'s private fields
-  `m_craftRecipe` and searches inventory via `Player.GetInventory()` /
-  `Inventory.GetAllItems()` - the `GetAllItems()` call specifically was
-  never directly confirmed this session (moderate-but-not-verified
-  confidence it's the real method name).
-- The "highest quality if the player has duplicates" heuristic for picking
-  which `FistGold` instance's quality to carry over is a guess - vanilla's
-  actual `ConsumeResources` consumption order (which specific item instance
-  gets removed) was never confirmed.
+- `ObjectDB.UpdateRegisters` is a **private method** patched by
+  name/signature - the most likely kind of thing to get silently renamed
+  or restructured between game versions. Confirm it still exists with this
+  signature in 1.0.7, and that Harmony successfully patches it (check the
+  BepInEx log on startup for patch failures).
 - The vanilla hook projectile's "~10 pierce damage" figure is
   community-sourced, not decompiled.
 - `Attack.m_attackAnimation` real field name is decompile-confirmed, but
@@ -72,11 +75,12 @@ effects.
   secondary attack actually produces a good-looking result (vs. a T-pose,
   vs. silently not triggering the projectile spawn) is untested.
 - "Black Forge" (`blackforge`) is confirmed as a real `CraftingStation`
-  prefab, but vanilla `FistGold` is actually crafted via a separate
-  Cast-at-Black-Forge + finish-at-Frost-Foundry two-step process that this
-  mod does NOT replicate - just check that `blackforge` is actually usable/
-  unlocked the way this recipe expects.
-- Pierce damage bonus (+40), reload time multiplier (0.5x), and movement
+  prefab, and confirmed real for Ashlands weapon-tier crafting specifically
+  (Dyrnwyn, Nidhögg both use it) - not just a guess anymore.
+- Flametal/Charred Bone recipe quantities (15/3, same as the other Ashlands
+  items in this mod) are estimates, not sourced from any single real
+  recipe - this is a new item, not a replica.
+- Pierce damage bonus (+40), reload time multiplier (0.4x), and movement
   speed bonus (+10%) are arbitrary numbers for fun, explicitly not
   balance-tested. Tune freely.
 
@@ -337,29 +341,20 @@ conflated the hook's usefulness for navigating that biome's vertical
 dungeons with where it's actually obtained (it's a tool carried forward
 from Mistlands, not a Deep North unlock).
 
-This does NOT change Grapple Knuckles' own tier placement - it's gated by
-`FistGold` (genuinely Deep North), and a Deep North recipe consuming an
-easier-to-obtain Mistlands ingredient is normal, unremarkable progression.
-What it DOES change: see the Ashlands fist weapon idea below, whose
-"doesn't structurally work" objection was based on the now-corrected wrong
-premise.
+**Follow-up decision, now implemented**: per explicit direction, this
+correction was used to actually move Grapple Knuckles from Deep North to
+**Ashlands** - filling the real "no Ashlands fist weapon exists" gap noted
+below - rather than leaving it at Deep North. See
+`GrappleKnucklesPlugin.cs`'s section above for the current recipe/design.
 
-## Open idea: Ashlands fist weapon
+## Note: no Ashlands-tier fist weapon exists in vanilla
 
 A survey confirmed (reasonably well-supported via WebSearch, not from a
-primary/decompiled source) that **no Ashlands-tier fist weapon exists in
-vanilla** - the full real `Fist*` roster is `FistBjornClaw` (Meadows),
+primary/decompiled source) that no vanilla Ashlands fist weapon exists -
+the full real `Fist*` roster is `FistBjornClaw` (Meadows),
 `FistBjornUndeadClaw` (Plains), `FistFenrirClaw` (Mountain, lower
-confidence), and the Deep North `FistGold` family (already used by Grapple
-Knuckles). A community discussion is cited as explicitly noting fist
-weapons have gone multiple biomes without a new entry.
-
-The idea floated was moving Grapple Knuckles itself into this gap.
-**Previously documented here as not structurally working, on the incorrect
-assumption that `GrapplingHook` was Deep North-only** - now that it's
-confirmed Mistlands-tier (which sits *below* Ashlands), that objection no
-longer holds: an Ashlands-tier item genuinely could use `GrapplingHook` as
-an ingredient without any progression-ordering conflict. Whether to
-actually build this (a distinct new Ashlands fist weapon using the hook,
-vs. leaving Grapple Knuckles where it is) is pending user direction - not
-yet designed or built.
+confidence), and the Deep North `FistGold` family. A community discussion
+is cited as explicitly noting fist weapons have gone multiple biomes
+without a new entry. Grapple Knuckles (see above) now fills this gap,
+per explicit direction, once the `GrapplingHook` tier correction made an
+Ashlands placement possible without a progression-ordering conflict.

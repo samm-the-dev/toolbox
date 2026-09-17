@@ -33,9 +33,9 @@ namespace GrappleKnuckles
     //      check). We temporarily rotate the wielder to face directly away
     //      from the incoming hit for the duration of the call (guaranteeing
     //      the dot product is negative), then restore their real rotation -
-    //      same "swap state, let original run, restore" trick already used
-    //      in QualityTransferPatch.cs, just applied to rotation instead of
-    //      item data. This is a plausible, low-risk technique on paper but
+    //      same "swap state, let original run, restore" trick the (since
+    //      removed) QualityTransferPatch.cs used, just applied to rotation
+    //      instead of item data. This is a plausible, low-risk technique on paper but
     //      was never visually verified - a single-frame rotation snap could
     //      be noticeable, or interact oddly with camera/animation. Flagged
     //      in CLAUDE.md as worth watching for in-game.

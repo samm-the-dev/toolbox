@@ -11,34 +11,38 @@ survey - see `CLAUDE.md` for the full research trail):
 | Mistlands | Fenris Mage armor | Fast-mage hybrid armor set |
 | Mistlands | Fire Dagger | Eitr-costed fire bolt secondary |
 | Mistlands | Shield of Frost | Eitr-channel block, parry/break procs |
+| Mistlands | Grappling Hook | Unmodified vanilla item - just the normal progression step |
 | Ashlands | Lightning Sword | Reuses Dundr's own bolt, tuned faster/weaker |
 | Ashlands | Exploding Sledge | Frost splinter-burst secondary |
-| Deep North | Grapple Knuckles | The original item - grapple hook secondary attack |
+| Ashlands | Grapple Knuckles | The original item - the Ashlands "upgrade" to the Mistlands hook |
 
-Crafted by combining **Nord Knucklechains** (`FistGold`, Deep North) + the
-vanilla **Grappling Hook** (`GrapplingHook`) at the **Black Forge**
-(`blackforge`), into a new item, **Grapple Knuckles**
-(`FistGold_Grapple`), whose secondary attack launches the grapple hook
-instead of Knucklechains' normal special move. **Correction**: the
-Grappling Hook is actually **Mistlands**-tier (Black Forge, Yggdrasil
-Wood, Refined Eitr, Mandibles - confirmed via 4+ cross-referenced sources),
-not Deep North as originally assumed - the "Deep North" framing conflated
-the hook's usefulness for navigating that biome with where it's actually
-obtained. The recipe stays valid regardless (a Deep North item consuming
-an easier-to-get Mistlands one is normal progression), so this doesn't
-change Grapple Knuckles' own tier placement, just corrects the hook's.
+**Grapple Knuckles** (`FistGold_Grapple`) is the intended narrative:
+you get the plain vanilla **Grappling Hook** (`GrapplingHook`) easily in
+Mistlands as a normal traversal tool, then in Ashlands you can craft an
+upgrade - a real fist weapon (modeled on **Nord Knucklechains**/`FistGold`,
+Deep North, used for its look/mechanics only - see below) whose secondary
+attack launches the hook faster than the plain version, while still
+working as a proper melee weapon on its own.
 
-Grapple Knuckles is meant as an **alternative to enchanting** Knucklechains
-into Frostfire (`FistGold_FrostFire`) or Thunderblood
-(`FistGold_BloodLightning`), not a further upgrade of them — the recipe
-only accepts plain `FistGold`. You trade the elemental proc for the grapple
-utility, a pierce damage bonus on the grapple hit itself, a halved reload
-time, and a movement speed bonus, all deliberately tuned for fun over strict
-balance (see `GrappleAttackPatch.cs`). If you craft from an upgraded
-(higher-quality) Knucklechains, that quality level carries over to the
-Grapple Knuckles (see `QualityTransferPatch.cs`) — vanilla has no built-in
-mechanism for this since it's a different item, so that's a from-scratch
-Harmony patch on the crafting flow.
+The Grappling Hook was originally (incorrectly) assumed to be Deep North
+content - it's actually entirely **Mistlands**-tier (Black Forge,
+Yggdrasil Wood, Refined Eitr, Mandibles, confirmed via 4+ cross-referenced
+sources). That correction is what made the Ashlands placement below make
+sense: Grapple Knuckles' recipe deliberately does **not** require an
+actual `FistGold` (that would gate an Ashlands, pre-Deep-North item behind
+Deep North) - it only clones `FistGold` as Jötunn's model/mechanics
+template, then prices the real recipe with Ashlands materials + the
+Grappling Hook instead. See `CLAUDE.md` for the full history of this
+correction.
+
+Grapple Knuckles trades Knucklechains' normal special move (or the
+Frostfire/Thunderblood elemental enchant path) for the grapple utility, a
+pierce damage bonus on the grapple hit itself, a fast reload, and a
+movement speed bonus, all deliberately tuned for fun over strict balance
+(see `GrappleAttackPatch.cs`). The recipe no longer consumes a real
+`FistGold` at all - see the intro above for why - so there's no quality
+level to carry over from an ingredient; the crafted item starts at quality
+1 like any other new recipe output.
 
 ## How the secondary attack override works
 
@@ -74,23 +78,6 @@ original), on `PrefabManager.OnVanillaPrefabsAvailable`, and
 `GrappleAttackPatch.cs` points the clone's secondary attack at that
 independent copy before adding the pierce bonus to it.
 
-## Quality transfer on craft
-
-`QualityTransferPatch.cs` patches `InventoryGui.DoCrafting(Player)` (private,
-confirmed via a decompile). Vanilla's quality-carry mechanism
-(`m_craftUpgradeItem`) only applies when re-crafting a recipe whose output
-matches an item the player already owns — the in-place "upgrade at the
-forge" case — and never fires for a recipe like ours where the output is a
-different item from the input. So this patch:
-
-1. **Prefix** — if the recipe being crafted is ours, find the player's
-   `FistGold` (highest quality, if they somehow have more than one — vanilla
-   doesn't expose which specific instance gets consumed) and remember its
-   quality.
-2. Let the original method run (crafts at quality 1, as normal).
-3. **Postfix** — find the newly crafted `FistGold_Grapple` and set its
-   quality to match what was captured.
-
 ## Damage / feel tuning
 
 All in `GrappleAttackPatch.cs`, all deliberately tuned for fun over strict
@@ -103,17 +90,19 @@ balance, per explicit request:
   point for playtesting, not a researched balance target — the enchanted
   variants' real damage figures could only be corroborated via web search
   snippets, not primary source.
-- **Reload time halved** vs. the vanilla hook (`ReloadTimeMultiplier = 0.5f`).
+- **Reload time cut to 40%** of the vanilla hook's (`ReloadTimeMultiplier = 0.4f`),
+  framed as "a little faster to grapple" than the plain Mistlands hook,
+  matching the item's Ashlands-upgrade narrative.
 - **+10% movement speed** while equipped (`SharedData.m_movementModifier`,
   confirmed field — a flat additive fraction summed across all equipped
   items, same mechanism as Wolf/Troll armor's speed penalty but positive
   here).
 
 **Status:** item clone/recipe, attack-wiring (including the cloned
-projectile, animation reuse, and Black Forge station), quality transfer,
-and all the damage/feel tuning above are implemented. Untested in-game (no
-local Valheim install available in this environment) — treat this as a
-first pass to verify, not a finished/verified mod.
+projectile, animation reuse, and Black Forge station), and all the
+damage/feel tuning above are implemented. Untested in-game (no local
+Valheim install available in this environment) — treat this as a first
+pass to verify, not a finished/verified mod.
 
 ## Fenris Mage armor (`FenrisMageArmor.cs`)
 
@@ -368,17 +357,16 @@ Copy the built `GrappleKnuckles.dll` into `<Valheim install>/BepInEx/plugins/Gra
 
 ## Project layout
 
-- `GrappleKnucklesPlugin.cs` - BepInEx plugin entrypoint; clones `FistGold` into
-  `FistGold_Grapple` via Jötunn's `ItemManager`/`CustomItem`/`ItemConfig`,
-  with a recipe of `FistGold` + `GrapplingHook` at the Black Forge, and
-  clones `Projectile_GrapplingHook` via `PrefabManager.CreateClonedPrefab`.
+- `GrappleKnucklesPlugin.cs` - BepInEx plugin entrypoint; clones `FistGold`
+  (model/mechanics only, not a crafting requirement) into `FistGold_Grapple`
+  via Jötunn's `ItemManager`/`CustomItem`/`ItemConfig`, with an Ashlands-
+  tier recipe of `GrapplingHook` + Flametal + Charred Bone at the Black
+  Forge, and clones `Projectile_GrapplingHook` via
+  `PrefabManager.CreateClonedPrefab`.
 - `GrappleAttackPatch.cs` - Harmony patch on `ObjectDB.UpdateRegisters` that
   wires the clone's secondary attack to the cloned grapple projectile,
   reuses the item's own attack animation, and applies the pierce/reload/
   movement-speed tuning.
-- `QualityTransferPatch.cs` - Harmony patch on `InventoryGui.DoCrafting`
-  that carries the source `FistGold`'s quality level onto the crafted
-  `FistGold_Grapple`.
 - `FenrisMageArmor.cs` - clones `ArmorFenringChest`/`ArmorFenringLegs` into
   a fast-mage hybrid set, creating and registering custom `SE_Stats` status
   effects for per-piece Eitr regen and the set's stamina regen bonus. No

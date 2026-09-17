@@ -18,11 +18,14 @@ namespace GrappleKnuckles
         public const string ModVersion = "0.1.0";
 
         // Vanilla prefabs we read from.
-        public const string SourceItemPrefabName = "FistGold"; // Nord Knucklechains
+        public const string SourceItemPrefabName = "FistGold"; // Nord Knucklechains - model/mechanics source only, see CloneKnucklechains
         public const string VanillaHookPrefabName = "GrapplingHook"; // Mistlands grappling hook (NOT Deep North - corrected, see CLAUDE.md)
         public const string VanillaHookProjectilePrefabName = "Projectile_GrapplingHook";
         public const string ClonedItemPrefabName = "FistGold_Grapple";
         public const string ClonedProjectilePrefabName = "Projectile_GrapplingHook_Knuckles";
+
+        private const string FlametalPrefabName = "Flametal";
+        private const string CharredBonePrefabName = "CharredBone";
 
         // Cloned once PrefabManager.OnVanillaPrefabsAvailable fires, so
         // GrappleAttackPatch can give it its own damage without mutating the
@@ -82,20 +85,23 @@ namespace GrappleKnuckles
         {
             try
             {
-                // Grapple Knuckles is framed as an alternative to enchanting
-                // Knucklechains into Frostfire/Thunderblood, not a further
-                // upgrade of them: it trades the elemental proc for the
-                // grapple secondary attack plus a pierce/speed bonus (see
-                // GrappleAttackPatch). So the recipe consumes the plain
-                // FistGold, not an enchanted variant.
+                // Re-tiered to Ashlands per explicit direction: the intended
+                // progression is "get the plain Grappling Hook easily in
+                // Mistlands, then upgrade to this fist weapon in Ashlands."
+                // That means the recipe deliberately does NOT require a real
+                // FistGold (Deep North) - gating an Ashlands-tier, pre-Deep-
+                // North item behind Deep North would contradict the whole
+                // point. FistGold is still the CustomItem clone source for
+                // model/mechanics only (per explicit "use the Deep North
+                // fist weapon model" direction) - Jötunn's clone is a
+                // design-time template copy, not a crafting requirement, so
+                // this is safe to do without needing the player to ever
+                // actually own a FistGold.
                 //
-                // Station: vanilla FistGold is actually a two-step item
-                // (Cast made at the Black Forge, finished at the Frost
-                // Foundry via a cooking-station-style mechanic, not a normal
-                // recipe) - we're not replicating that chain, just picking
-                // a thematically fitting CraftingStation for this new
-                // combine recipe. "blackforge" is the confirmed internal
-                // prefab name for the Black Forge.
+                // Station: "blackforge" - confirmed real for Ashlands
+                // weapon-tier crafting too (Dyrnwyn, Nidhögg both use it),
+                // not exclusive to Deep North/Mistlands despite where this
+                // mod first used it.
                 var itemConfig = new ItemConfig
                 {
                     Name = "$item_fistgold_grapple",
@@ -103,8 +109,9 @@ namespace GrappleKnuckles
                     CraftingStation = "blackforge",
                     Requirements = new[]
                     {
-                        new RequirementConfig { Item = SourceItemPrefabName, Amount = 1 },
                         new RequirementConfig { Item = VanillaHookPrefabName, Amount = 1 },
+                        new RequirementConfig { Item = FlametalPrefabName, Amount = 15, AmountPerLevel = 10 },
+                        new RequirementConfig { Item = CharredBonePrefabName, Amount = 3, AmountPerLevel = 2 },
                     },
                 };
 

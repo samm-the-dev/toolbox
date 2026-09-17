@@ -8,13 +8,15 @@ survey - see `CLAUDE.md` for the full research trail):
 | Tier | Item | Notes |
 |---|---|---|
 | Mountain / Silver | `MountainTierAxe` - fire+spirit axe | No Eitr spell (Eitr doesn't exist yet); pairs with Fenris Mage armor |
-| Mistlands | Fenris Mage armor | Fast-mage hybrid armor set |
+| Mistlands | Fenris Mage armor | Fast-mage hybrid armor set (built from the light Fenris set) |
 | Mistlands | Fire Dagger | Eitr-costed fire bolt secondary |
 | Mistlands | Shield of Frost | Eitr-channel block, parry/break procs |
 | Mistlands | Grappling Hook | Unmodified vanilla item - just the normal progression step |
+| Ashlands | Ashlands Hybrid Armor | Fast-mage hybrid armor set (built from the real "Embla" mage armor) |
 | Ashlands | Lightning Sword | Reuses Dundr's own bolt, tuned faster/weaker |
 | Ashlands | Exploding Sledge | Frost splinter-burst secondary |
 | Ashlands | Grapple Knuckles | The original item - the Ashlands "upgrade" to the Mistlands hook |
+| Deep North | Deep North Hybrid Armor | Fast-mage hybrid armor set (built from the real "Caller" mage armor) |
 
 **Grapple Knuckles** (`FistGold_Grapple`) is the intended narrative:
 you get the plain vanilla **Grappling Hook** (`GrapplingHook`) easily in
@@ -164,6 +166,30 @@ revisiting.
 
 **Status:** implemented, untested in-game, same caveats as the rest of this
 mod.
+
+## Ashlands & Deep North Hybrid Armor (`AshlandsHybridArmor.cs` / `DeepNorthHybridArmor.cs`)
+
+Fast-mage hybrid armor for the other two tiers, filling the role Fenris
+Mage Armor fills at Mountain tier - but approached from the opposite
+direction. Fenris started as a light, *non-mage* set and gained partial
+Eitr regen built from scratch; these clone the **real mage armor that
+already exists at each tier** - "Embla" (Ashlands) and "Caller" (Deep
+North), both confirmed real prefabs - and trade a slice of their own
+native armor for movement speed, while keeping their real Eitr regen
+intact rather than rebuilding it. Both add the same +25% stamina regen set
+bonus as Fenris Mage Armor, for the same melee-viability reasoning.
+
+**Biggest assumption**: `m_equipStatusEffect` is deliberately left
+untouched on these clones (unlike Fenris Mage Armor, which builds a brand
+new one), on the theory that Jötunn's clone inherits it automatically and
+Embla/Caller's own Eitr regen lives there - this was never independently
+verified, and if their Eitr regen actually comes through their *set*
+bonus instead (which these files do overwrite, to install the stamina
+bonus), these hybrid pieces would silently lose all Eitr regen. **Check
+this first**: equip one piece alone and see if Eitr regen is still
+boosted.
+
+**Status:** implemented, untested in-game.
 
 ## Elemental weapons (`ElementalWeapons.cs` / `ElementalWeaponAttackPatch.cs`)
 
@@ -372,6 +398,9 @@ Copy the built `GrappleKnuckles.dll` into `<Valheim install>/BepInEx/plugins/Gra
   effects for per-piece Eitr regen and the set's stamina regen bonus. No
   Harmony patch needed for this one - set bonuses are stock vanilla
   behavior once the right `SharedData` fields are set.
+- `AshlandsHybridArmor.cs` / `DeepNorthHybridArmor.cs` - same pattern,
+  cloning the real Embla/Caller mage armor instead and trading armor for
+  speed rather than building Eitr regen from scratch.
 - `ElementalWeapons.cs` - clones the Fire Dagger (from `KnifeGold`) and
   Lightning Sword (from `SwordGold`), their recipes, elemental damage, and
   the cloned/scaled-down bolt projectiles.

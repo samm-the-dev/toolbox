@@ -84,6 +84,40 @@ for it to transfer from.
   speed bonus (+10%) are arbitrary numbers for fun, explicitly not
   balance-tested. Tune freely.
 
+## AshlandsHybridArmor.cs / DeepNorthHybridArmor.cs
+
+New: fast-mage hybrid armor for Ashlands and Deep North, filling the "Fenris
+Mage Armor" role at those tiers. Approached from the opposite direction to
+Fenris: instead of starting from a light non-mage set and adding partial
+Eitr regen, these clone the *real* mage armor at each tier - "Embla"
+(`ArmorMageChest_Ashlands`/`ArmorMageLegs_Ashlands`, confirmed real
+prefabs) and "Caller" (`ArmorDeepNorthMageChest`/`ArmorDeepNorthMagelegs`,
+confirmed real prefabs) - and trade a slice of their own native armor for
+movement speed, keeping their Eitr regen intact.
+
+- **The biggest assumption in both files**: `m_equipStatusEffect` is
+  deliberately left untouched on the clone (not overwritten, unlike
+  `FenrisMageArmor.cs` which builds a brand-new one from scratch), on the
+  theory that Jötunn's clone inherits it from the source item automatically,
+  and Embla/Caller's own real Eitr regen almost certainly lives there (by
+  analogy with the confirmed per-piece Eitr-weave pattern). **This was
+  never independently verified** - it's plausible but unconfirmed that
+  Embla/Caller's Eitr regen instead comes through their own
+  `m_setStatusEffect` (which these files DO overwrite, to detach from
+  vanilla's set and install our stamina-regen bonus instead) - if so, these
+  hybrid pieces would silently lose all Eitr regen rather than keep it.
+  **Check this first in-game**: equip a hybrid piece alone (not the full
+  set) and see if Eitr regen is still boosted.
+- Real armor totals for Embla (~75) and Caller (~22/piece) are
+  community-sourced (WebSearch), not primary-confirmed - the
+  `ArmorScale = 0.85f` trade-off is relative to whatever the clone actually
+  inherits, same reasoning as `FenrisMageArmor.cs`'s scaling, not a
+  hardcoded absolute.
+- Recipe requirements are placeholder-minimal (just the source armor
+  piece), same as `FenrisMageArmor.cs` - almost certainly too cheap.
+- Both share the same set-bonus mechanism, StatusEffect-creation pattern,
+  and caveats as `FenrisMageArmor.cs` below - not re-documented per file.
+
 ## FenrisMageArmor.cs
 
 - Only two real Fenris prefabs were found in Jötunn's own generated prefab

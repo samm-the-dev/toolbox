@@ -112,21 +112,34 @@ mismatched game versions, or just wrong.
   animation) and attempted a mesh-reskin toward Nord Dagger's appearance,
   but that whole dual-wield/reskin approach was dropped per explicit
   direction. No mesh-swap risk in the current version.
-- **Essence/Eitr upgrade cost numbers are placeholders.** The real vanilla
-  essence cost to enchant Knucklechains into Frostfire/Thunderblood
-  couldn't be found from this environment (recipe requirement amounts are
-  recipe-asset data, not decompiled C#, and wiki sites that would have them
-  are blocked here) - `BaseVanillaEnchantEssenceCost = 2` in
-  `ElementalWeapons.cs` is a guess to double from, per explicit "double
-  essences" request. Correct this constant against the real recipe first,
-  then the derived `UpgradeEssenceCost` follows automatically.
-- Base recipe quantities (2x Nord Dagger + 1x Frostfire Essence per dagger;
-  1x Nord Sword + 2x Thunderblood Essence for the sword) came directly from
-  the user, not research - not independently verified, but also not a
-  guess on my part.
-- Secondary attack numbers (10 Eitr cost, 5 stamina, 2s reload) and
-  elemental damage bonuses (+20 fire/lightning) are arbitrary starting
-  points, same as every other tuning number in this mod.
+- **Re-tiered per explicit direction, after a full survey of real vanilla
+  elemental weapons/staves**: Fire Dagger moved from Deep North to
+  Mistlands (priced with Surtling Core + Refined Eitr, the confirmed real
+  materials for "Staff of Embers"); Lightning Sword moved from Deep North
+  to Ashlands (priced with Flametal + Bloodstone (`GemstoneRed`) + Charred
+  Bone, modeled on Dyrnwyn/Nidhögg's real recipes as a generalized
+  template, not copied exactly since those are specific named items). Both
+  still clone from their original Nord-tier base item (`KnifeGold`/
+  `SwordGold`) for model/mechanics, since no confirmed Mistlands-native
+  dagger or Ashlands-native one-handed sword exists to clone from instead -
+  only the recipe materials/station tier changed, not the visual base.
+- **Recipe quantities for the new tier materials (Surtling Core, Flametal,
+  Bloodstone, Charred Bone amounts) are estimates**, informed by real
+  comparable recipes (Staff of Embers, Dyrnwyn, Nidhögg) but not exact
+  copies - these are new items, not replicas of any single real recipe.
+  Verify they feel right for the intended tier in actual play.
+- Secondary attack numbers (10 Eitr cost, 5 stamina, 2s reload for Fire
+  Dagger / 1s for Lightning Sword) and elemental damage bonuses (+20 fire/
+  lightning) are arbitrary starting points, same as every other tuning
+  number in this mod.
+- **Lightning Sword's bolt is now deliberately weaker than Dundr's own
+  cast** (`LightningBoltDamageMultiplier = 0.5f` applied to the cloned
+  projectile's `m_lightning` damage), per explicit "faster and weaker, no
+  loading mechanic" direction. The "no loading mechanic" half was already
+  true by construction - this patch never sets the draw/charge-related
+  Attack fields (`m_drawEitrDrain`/similar), so the sword's bolt fires
+  instantly regardless; only the damage/reload tuning needed an actual
+  code change.
 - The two bolt projectiles are cloned at half scale (`BoltScale = 0.5f`)
   via the same `PrefabManager.CreateClonedPrefab` pattern as the grapple
   hook - confirmed technique, but the *visual* result of scaling a staff
@@ -145,19 +158,74 @@ mismatched game versions, or just wrong.
   instead. If you want it back, it's a near-identical copy of
   `CloneDagger()`.
 
+## MountainTierAxe.cs
+
+New: a Silver/Mountain-tier axe with innate fire+spirit damage and no Eitr
+spell at all - Eitr doesn't exist at this tier, matching the real vanilla
+"Frostner" (`MaceSilver`) pattern (baked-in elemental damage, fully
+craftable, no enchant material). A dedicated survey confirmed no vanilla
+axe has ever had innate elemental damage, and axes skip the Silver/
+Mountain tier entirely (`AxeIron` -> `AxeBlackMetal`, no `AxeSilver`
+exists) - so there's no real base item to clone from for this slot.
+
+- Clones `AxeIron` (closest lower tier) and scales its damage up via a
+  multiplier (`DamageScale = 1.8f`) toward Frostner's confirmed real power
+  level, rather than a hardcoded absolute - same technique already used for
+  Fenris Mage armor, so it stays correct regardless of `AxeIron`'s exact
+  real baseline. **The scale factor itself is an estimate** - Frostner's
+  real stats (35 blunt/40 frost/20 spirit primary, confirmed via WebSearch
+  cross-reference) weren't precisely matched against `AxeIron`'s actual
+  numbers, just aimed at roughly that power level.
+- `CraftingStation = "forge"` and the Silver/Ancient Bark recipe quantities
+  are **unconfirmed guesses** (by analogy with the confirmed no-`"piece_"`-
+  prefix `"blackforge"` naming) - never checked against a real Frostner
+  recipe or the real Forge station name. `MinStationLevel = 3` matches
+  Frostner's confirmed real Forge-level-3 requirement.
+- Pairs with the existing Fenris Mage armor (already Mountain-tier) - no
+  new armor was built for this tier.
+
+## ExplodingSledge.cs
+
+New: an Ashlands sledge. Normal attacks are untouched vanilla `SledgeGold`
+cleave (no per-hit explosion, per explicit "just the usual sledge AoE"
+direction) - only the secondary attack is modified, firing a single frost
+burst sized like one of "Staff of Fracturing"'s splinter sub-munitions
+(`staff_clusterbombstaff_splinter_projectile` - the smaller child
+projectile the main clusterbomb spawns on impact, deliberately NOT the main
+multi-splinter projectile itself, per explicit direction), damage scaled up
+slightly (`SplinterDamageMultiplier = 1.3f`) above a single splinter's own
+damage.
+
+- Priced with Flametal + Charred Bone (the same Ashlands material family as
+  Lightning Sword's re-tier) rather than replicating `SledgeGold`'s own
+  real `_FrostFire`/`_BloodLightning` enchant-sibling recipe, since this is
+  a distinct new item.
+- Secondary attack stamina/reload numbers are arbitrary starting points,
+  same as every other tuning number in this mod.
+- Shares the same unconfirmed-mesh/no-localization/untested-in-game caveats
+  as every other item in this mod.
+
 ## Whole-mod gaps
 
 - **No localization file exists anywhere in this project.** Every item
   name/description (`$item_fistgold_grapple`, `$item_fenrismage_chest`,
   `$item_fire_dagger`, `$item_lightning_sword`, `$item_shield_of_frost`,
-  etc.) is an unlocalized token - in-game, these will likely show as the
-  literal raw string, not readable text, until a `Translations/English.json`
-  (or Jötunn's localization API) is added.
+  `$item_mountain_spiritfire_axe`, `$item_exploding_sledge`, etc.) is an
+  unlocalized token - in-game, these will likely show as the literal raw
+  string, not readable text, until a `Translations/English.json` (or
+  Jötunn's localization API) is added.
 - Nothing in this mod has been run in an actual Valheim session. Every
   "confirmed" fact above was confirmed via someone else's source code, not
   by observing this mod's actual behavior.
 
 ## ShieldOfFrost.cs / ShieldOfFrostPatches.cs
+
+**Re-tiered from Deep North to Mistlands** per explicit direction (useful
+against Seekers' ranged fire attacks), priced with Freeze Gland + Refined
+Eitr - the confirmed real materials for "Staff of Frost", the Mistlands
+frost staff. This shield is a melee/block echo of that staff, not a
+replica of its exact recipe/cost, and the recipe quantities are estimates
+same as everywhere else in this mod.
 
 This is the highest-risk file in the mod - four distinct mechanics
 (continuous Eitr drain on a held input, a parry-detection proc, a

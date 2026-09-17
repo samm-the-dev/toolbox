@@ -35,9 +35,11 @@ namespace GrappleKnuckles
         {
             ItemManager.OnItemsRegistered += CloneKnucklechains;
             ItemManager.OnItemsRegistered += FenrisMageArmor.Clone;
+            ItemManager.OnItemsRegistered += MountainTierAxe.Clone;
             PrefabManager.OnVanillaPrefabsAvailable += CloneProjectile;
             ElementalWeapons.Init();
             ShieldOfFrost.Init();
+            ExplodingSledge.Init();
 
             _harmony.PatchAll();
 
@@ -48,9 +50,11 @@ namespace GrappleKnuckles
         {
             ItemManager.OnItemsRegistered -= CloneKnucklechains;
             ItemManager.OnItemsRegistered -= FenrisMageArmor.Clone;
+            ItemManager.OnItemsRegistered -= MountainTierAxe.Clone;
             PrefabManager.OnVanillaPrefabsAvailable -= CloneProjectile;
             ElementalWeapons.Dispose();
             ShieldOfFrost.Dispose();
+            ExplodingSledge.Dispose();
             _harmony?.UnpatchSelf();
         }
 

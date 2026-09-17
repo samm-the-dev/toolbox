@@ -1,6 +1,19 @@
 # Grapple Knuckles
 
-Valheim (1.0.7, post-Deep North) BepInEx + HarmonyX + Jötunn (JVL) mod.
+Valheim (1.0.7, post-Deep North) BepInEx + HarmonyX + Jötunn (JVL) mod. Has
+grown from a single item into a small "fast mage" toolkit, tiered to match
+real vanilla elemental-weapon progression (confirmed via a dedicated
+survey - see `CLAUDE.md` for the full research trail):
+
+| Tier | Item | Notes |
+|---|---|---|
+| Mountain / Silver | `MountainTierAxe` - fire+spirit axe | No Eitr spell (Eitr doesn't exist yet); pairs with Fenris Mage armor |
+| Mistlands | Fenris Mage armor | Fast-mage hybrid armor set |
+| Mistlands | Fire Dagger | Eitr-costed fire bolt secondary |
+| Mistlands | Shield of Frost | Eitr-channel block, parry/break procs |
+| Ashlands | Lightning Sword | Reuses Dundr's own bolt, tuned faster/weaker |
+| Ashlands | Exploding Sledge | Frost splinter-burst secondary |
+| Deep North | Grapple Knuckles | The original item - grapple hook secondary attack |
 
 Crafted by combining **Nord Knucklechains** (`FistGold`) + the vanilla
 **Grappling Hook** (`GrapplingHook`, added in the Deep North update) at the
@@ -185,16 +198,28 @@ The Fire Dagger gets a flat +20 fire damage bonus on `SharedData.m_damages`
 rather than a separate on-hit effect: elemental damage inherently procs the
 matching vanilla status effect (burning) once it's above zero, the same
 mechanism the real Frostfire-enchanted weapons use, so no extra wiring is
-needed. The Lightning Sword gets +20 lightning damage the same way.
+needed. The Lightning Sword gets +20 lightning damage the same way, and its
+bolt is deliberately weaker than Dundr's own cast (`LightningBoltDamageMultiplier = 0.5f`)
+and fires on a faster 1s reload, per explicit "faster and weaker, no
+loading mechanic" direction - it never had a charge/draw mechanic to begin
+with, since this patch never sets those Attack fields.
 
-Recipes: 2x Nord Dagger + 1x Frostfire Essence for the dagger; 1x Nord
-Sword + 2x Thunderblood Essence for the sword; both at the Black Forge.
-Upgrading costs additional essence (`RequirementConfig.AmountPerLevel`,
-confirmed to map directly to vanilla's own per-quality-level resource
-scaling - no custom logic needed) plus some Refined Eitr. **The exact
-upgrade numbers are placeholders** - the real vanilla essence cost to
-enchant Knucklechains (which "double essences" was meant to be relative to)
-wasn't reachable from this research environment; see `CLAUDE.md`.
+**Tiering**, after a full survey of real vanilla elemental weapons/staves
+confirmed where things actually belong: **Fire Dagger is Mistlands-tier**
+(priced with Surtling Core + Refined Eitr, "Staff of Embers"' real
+materials) and **Lightning Sword is Ashlands-tier** (priced with Flametal +
+Bloodstone + Charred Bone, modeled on Dyrnwyn/Nidhögg's real recipes).
+Both still clone from their original Nord-tier item (`KnifeGold`/
+`SwordGold`) for model/mechanics only - no confirmed Mistlands-native
+dagger or Ashlands-native one-handed sword exists to clone from instead,
+and only the recipe/station changed. Both crafted at the **Black Forge**
+still - confirmed real for weapon-tier crafting in both Mistlands and
+Ashlands (e.g. Himminafl, Dyrnwyn, Nidhögg all use it too), not exclusive
+to Deep North despite where this mod first used it.
+
+Recipe quantities are estimates informed by real comparable recipes, not
+exact copies (these are new items, not replicas of any single real one) -
+see `CLAUDE.md` for the specific numbers and their sourcing.
 
 **Status:** implemented, untested in-game, same caveats as the rest of this
 mod - see `CLAUDE.md` for the full list of what to verify.
@@ -203,8 +228,10 @@ mod - see `CLAUDE.md` for the full list of what to verify.
 
 The frost identity from the original fire/frost dagger idea, moved to its
 own item: a shield (cloned from a Mistlands-tier vanilla shield -
-`ShieldCarapace`, **unconfirmed**, see `CLAUDE.md`) with four mechanics,
-each hooked onto a real confirmed vanilla method rather than reimplemented:
+`ShieldCarapace`, **unconfirmed**, see `CLAUDE.md`), Mistlands-tier, priced
+with Freeze Gland + Refined Eitr (Staff of Frost's real materials) -
+useful against the Seekers' ranged fire attacks. Four mechanics, each
+hooked onto a real confirmed vanilla method rather than reimplemented:
 
 - **Channels Eitr while blocking** instead of vanilla's zero-cost idle
   block, mirroring the confirmed real precedent for continuous per-tick
@@ -232,6 +259,41 @@ independently re-verified, and the AoE burst spawns via a raw
 `Object.Instantiate` rather than Valheim's own network-aware spawn path,
 which may not replicate correctly in multiplayer. Full breakdown in
 `CLAUDE.md`.
+
+**Status:** implemented, untested in-game.
+
+## Mountain-tier Axe (`MountainTierAxe.cs`)
+
+A Silver/Mountain-tier axe with innate fire+spirit damage and **no Eitr
+spell at all** - Eitr doesn't exist yet at this tier, matching the real
+vanilla "Frostner" (`MaceSilver`) pattern: baked-in elemental damage, fully
+craftable, no enchant material needed. A dedicated survey confirmed no
+vanilla axe has ever had innate elemental damage, and axes skip the
+Silver/Mountain tier entirely in vanilla (no `AxeSilver` exists) - so
+there's no real base item to clone from. Clones `AxeIron` instead and
+scales its damage up (`DamageScale = 1.8f`, a multiplier on whatever
+`AxeIron` actually has, not a hardcoded absolute - same technique as Fenris
+Mage armor) toward Frostner's confirmed real power level, then adds fire
+and spirit damage on top (spirit matches the tier's existing vanilla
+identity - Frostner and the Silver Sword both have it).
+
+Pairs with the existing Fenris Mage armor (already Mountain-tier) - no new
+armor needed for this tier.
+
+**Status:** implemented, untested in-game. Station name and recipe
+quantities are unconfirmed guesses - see `CLAUDE.md`.
+
+## Exploding Sledge (`ExplodingSledge.cs`)
+
+An Ashlands sledge. Normal attacks are untouched vanilla `SledgeGold`
+cleave - "just the usual sledge AoE," per explicit direction, no per-hit
+explosion. Only the secondary attack changes: a single frost burst sized
+like one of "Staff of Fracturing"'s splinter sub-munitions
+(`staff_clusterbombstaff_splinter_projectile` - deliberately the smaller
+child projectile, not the main multi-splinter barrage), damage scaled up
+slightly above a single splinter's own strength. Priced with Flametal +
+Charred Bone, the same Ashlands material family as the Lightning Sword's
+re-tier.
 
 **Status:** implemented, untested in-game.
 
@@ -320,5 +382,10 @@ Copy the built `GrappleKnuckles.dll` into `<Valheim install>/BepInEx/plugins/Gra
 - `ShieldOfFrostPatches.cs` - Harmony patches on `Humanoid.UpdateBlock`/
   `BlockAttack` for the Eitr-channel, frost-on-parry, break-AoE, and
   omnidirectional-block mechanics.
+- `MountainTierAxe.cs` - clones `AxeIron` into a Silver-tier fire+spirit
+  axe with scaled-up damage, no Eitr spell.
+- `ExplodingSledge.cs` - clones `SledgeGold` and a splinter burst
+  projectile (from Staff of Fracturing's sub-munition) for its secondary
+  attack; includes its own `ObjectDB.UpdateRegisters` Harmony patch.
 - `manifest.json` - Thunderstore package manifest.
 - `Libraries/` - local-only reference DLLs (gitignored, not committed).

@@ -18,6 +18,14 @@ namespace GrappleKnuckles
         private const float SecondaryAttackStaminaCost = 5f;
         private const float SecondaryAttackReloadTime = 2f;
 
+        // Faster than Dundr's own cast, per explicit "faster and weaker"
+        // direction (the "weaker" half is the LightningBoltDamageMultiplier
+        // in ElementalWeapons.cs). Note there's no charge/draw mechanic to
+        // strip out here in the first place - this patch never sets
+        // m_drawStaminaDrain/m_reloadEitrDrain (the fields a "loading" cast
+        // would use), so the sword's bolt was always instant-fire.
+        private const float LightningSwordReloadTime = 1f;
+
         private static bool _applied;
 
         private static void Postfix(ObjectDB __instance)
@@ -43,13 +51,13 @@ namespace GrappleKnuckles
                 return;
             }
 
-            WireSecondaryAttack(fireDagger, ElementalWeapons.FireBoltProjectile, "Fire Dagger");
-            WireSecondaryAttack(lightningSword, ElementalWeapons.LightningBoltProjectile, "Lightning Sword");
+            WireSecondaryAttack(fireDagger, ElementalWeapons.FireBoltProjectile, "Fire Dagger", SecondaryAttackReloadTime);
+            WireSecondaryAttack(lightningSword, ElementalWeapons.LightningBoltProjectile, "Lightning Sword", LightningSwordReloadTime);
 
             _applied = true;
         }
 
-        private static void WireSecondaryAttack(UnityEngine.GameObject weaponPrefab, UnityEngine.GameObject boltProjectile, string label)
+        private static void WireSecondaryAttack(UnityEngine.GameObject weaponPrefab, UnityEngine.GameObject boltProjectile, string label, float reloadTime)
         {
             var itemData = weaponPrefab.GetComponent<ItemDrop>()?.m_itemData;
             if (itemData?.m_shared == null)
@@ -63,7 +71,7 @@ namespace GrappleKnuckles
             attack.m_attackProjectile = boltProjectile;
             attack.m_attackEitr = SecondaryAttackEitrCost;
             attack.m_attackStamina = SecondaryAttackStaminaCost;
-            attack.m_reloadTime = SecondaryAttackReloadTime;
+            attack.m_reloadTime = reloadTime;
 
             if (itemData.m_shared.m_attack != null)
             {
@@ -72,7 +80,7 @@ namespace GrappleKnuckles
 
             itemData.m_shared.m_secondaryAttack = attack;
 
-            Logger.LogInfo($"{label}: wired secondary attack to a cloned bolt projectile ({SecondaryAttackEitrCost} Eitr cost).");
+            Logger.LogInfo($"{label}: wired secondary attack to a cloned bolt projectile ({SecondaryAttackEitrCost} Eitr cost, {reloadTime}s reload).");
         }
     }
 }

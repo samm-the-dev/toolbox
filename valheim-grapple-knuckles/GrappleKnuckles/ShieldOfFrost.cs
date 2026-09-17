@@ -23,6 +23,13 @@ namespace GrappleKnuckles
     //     projectile) has real m_aoe/m_ttl-driven burst behavior, already
     //     relied on elsewhere in this project.
     //
+    // Re-tiered to Mistlands per explicit direction, after a full survey of
+    // real vanilla elemental weapons/staves - useful against Seekers'
+    // ranged fire attacks. Priced with Freeze Gland + Refined Eitr,
+    // confirmed real materials for "Staff of Frost" (the Mistlands frost
+    // staff); this shield is a melee/block echo of that staff, not a
+    // replica of its exact recipe/cost.
+    //
     // NOT confirmed: ShieldSourcePrefabName below (a guess at a real
     // Mistlands-tier vanilla shield to clone from, picked for thematic/tier
     // consistency with the rest of this mod's items) was never verified
@@ -38,14 +45,8 @@ namespace GrappleKnuckles
         public const string FrostBurstSourcePrefabName = "staff_clusterbombstaff_projectile"; // Staff of Fracturing
         public const string FrostBurstClonedPrefabName = "Burst_ShieldOfFrost";
 
-        private const string FrostfireEssencePrefabName = "OrbFrostFire";
+        private const string FreezeGlandPrefabName = "FreezeGland";
         private const string RefinedEitrPrefabName = "Eitr";
-
-        // Same placeholder reasoning as ElementalWeapons.cs - correct
-        // against the real vanilla enchant cost first.
-        private const int BaseVanillaEnchantEssenceCost = 2;
-        private const int UpgradeEssenceCost = BaseVanillaEnchantEssenceCost * 2;
-        private const int UpgradeRefinedEitrCost = 2;
 
         // Smaller than a full staff cast, matching the "small AoE" ask.
         private const float FrostBurstScale = 0.6f;
@@ -98,18 +99,8 @@ namespace GrappleKnuckles
                     Requirements = new[]
                     {
                         new RequirementConfig { Item = ShieldSourcePrefabName, Amount = 1 },
-                        new RequirementConfig
-                        {
-                            Item = FrostfireEssencePrefabName,
-                            Amount = 1,
-                            AmountPerLevel = UpgradeEssenceCost,
-                        },
-                        new RequirementConfig
-                        {
-                            Item = RefinedEitrPrefabName,
-                            Amount = 0,
-                            AmountPerLevel = UpgradeRefinedEitrCost,
-                        },
+                        new RequirementConfig { Item = FreezeGlandPrefabName, Amount = 4, AmountPerLevel = 4 },
+                        new RequirementConfig { Item = RefinedEitrPrefabName, Amount = 10, AmountPerLevel = 5 },
                     },
                 };
 

@@ -8,21 +8,33 @@ using Logger = Jotunn.Logger;
 namespace GrappleKnuckles
 {
     // Two mage-flavored melee weapons, alongside Grapple Knuckles and the
-    // Fenris Mage armor: a Fire Dagger (cloned directly from Nord Dagger -
-    // dropped the earlier Skoll-and-Hati dual-wield/reskin idea, per
-    // explicit direction, so no mesh-swap risk here) and a Lightning Sword
-    // (cloned from Nord Sword). The frost half of the original fire/frost
-    // dagger pair idea moved to a separate magic shield instead (see
-    // ShieldOfFrost.cs, once built). Each weapon fires a small Eitr-costed
-    // bolt as its secondary attack, reusing a real vanilla staff's
-    // projectile instead of reimplementing spell physics/VFX, same approach
-    // as Grapple Knuckles' hook launch.
+    // Fenris Mage armor: a Fire Dagger (cloned from Nord Dagger for its
+    // model/mechanics - no confirmed Mistlands-native dagger exists to clone
+    // instead) re-tiered to Mistlands, and a Lightning Sword (cloned from
+    // Nord Sword, same reasoning) re-tiered to Ashlands. Both fire a small
+    // Eitr-costed bolt as their secondary attack, reusing a real vanilla
+    // staff's projectile instead of reimplementing spell physics/VFX, same
+    // approach as Grapple Knuckles' hook launch.
+    //
+    // Tier placement, per explicit direction after a full survey of real
+    // vanilla elemental weapons/staves:
+    //   - Fire Dagger -> Mistlands, priced with Surtling Core + Refined Eitr
+    //     (confirmed real materials for "Staff of Embers", the Mistlands
+    //     fire staff - this item is a melee echo of that staff, not a
+    //     replica of its exact recipe/cost).
+    //   - Lightning Sword -> Ashlands, priced with Flametal + Bloodstone +
+    //     Charred Bone (confirmed real Ashlands one-handed-weapon materials,
+    //     via Dyrnwyn/Nidhögg's real recipes as reference templates - not
+    //     copied exactly, since those are specific unique/named items).
+    //     Its secondary attack already reused Dundr's (the Ashlands
+    //     lightning staff) actual projectile from the start - what changed
+    //     here is tuning it faster and weaker than a full Dundr cast, per
+    //     explicit direction, rather than the wiring itself.
     //
     // Confirmed facts this relies on:
     //   - KnifeGold = "Nord Dagger", SwordGold = "Nord Sword" - real prefabs.
-    //   - OrbFrostFire = "Frostfire Essence", OrbThunderBlood =
-    //     "Thunderblood Essence", Eitr = "Refined Eitr" - real material
-    //     prefab names.
+    //   - SurtlingCore, FreezeGland, Flametal, GemstoneRed ("Bloodstone"),
+    //     CharredBone, Eitr ("Refined Eitr") - real material prefab names.
     //   - RequirementConfig.AmountPerLevel (Jötunn) maps directly to
     //     vanilla's own Piece.Requirement.m_amountPerLevel - upgrade cost
     //     scaling is native vanilla behavior, not custom logic.
@@ -40,8 +52,11 @@ namespace GrappleKnuckles
         public const string SwordSourcePrefabName = "SwordGold"; // Nord Sword
         public const string LightningSwordPrefabName = "SwordGold_Lightning";
 
-        private const string FrostfireEssencePrefabName = "OrbFrostFire";
-        private const string ThunderbloodEssencePrefabName = "OrbThunderBlood";
+        private const string SurtlingCorePrefabName = "SurtlingCore";
+        private const string FreezeGlandPrefabName = "FreezeGland";
+        private const string FlametalPrefabName = "Flametal";
+        private const string BloodstonePrefabName = "GemstoneRed"; // "Bloodstone"
+        private const string CharredBonePrefabName = "CharredBone";
         private const string RefinedEitrPrefabName = "Eitr";
 
         public const string FireBoltSourcePrefabName = "staff_fireball_projectile"; // Staff of Embers
@@ -50,18 +65,13 @@ namespace GrappleKnuckles
         public const string FireBoltClonedPrefabName = "Bolt_Fire_Dagger";
         public const string LightningBoltClonedPrefabName = "Bolt_Lightning_Sword";
 
-        // Placeholder - the real vanilla essence cost to enchant Knucklechains
-        // into Frostfire/Thunderblood couldn't be found (recipe requirement
-        // amounts are recipe-asset data, not decompiled C#, and the wikis
-        // that would have them are blocked in this research environment).
-        // "Double essences" per explicit request, relative to this guess -
-        // correct BaseVanillaEnchantEssenceCost against your own game first.
-        private const int BaseVanillaEnchantEssenceCost = 2;
-        private const int UpgradeEssenceCost = BaseVanillaEnchantEssenceCost * 2;
-        private const int UpgradeRefinedEitrCost = 2;
-
         // "Smaller projectiles" per explicit request.
         private const float BoltScale = 0.5f;
+
+        // Dundr's own bolt is a full staff-cast payload; the sword's version
+        // is deliberately weaker (and faster - see ElementalWeaponAttackPatch),
+        // per explicit "faster and weaker" direction.
+        private const float LightningBoltDamageMultiplier = 0.5f;
 
         private const float DaggerElementalDamageBonus = 20f;
         private const float SwordLightningDamageBonus = 20f;
@@ -84,7 +94,17 @@ namespace GrappleKnuckles
         private static void CloneBoltProjectiles()
         {
             FireBoltProjectile ??= CloneAndScaleProjectile(FireBoltClonedPrefabName, FireBoltSourcePrefabName);
-            LightningBoltProjectile ??= CloneAndScaleProjectile(LightningBoltClonedPrefabName, LightningBoltSourcePrefabName);
+
+            if (LightningBoltProjectile == null)
+            {
+                LightningBoltProjectile = CloneAndScaleProjectile(LightningBoltClonedPrefabName, LightningBoltSourcePrefabName);
+
+                var projectileComponent = LightningBoltProjectile?.GetComponent<Projectile>();
+                if (projectileComponent != null)
+                {
+                    projectileComponent.m_damage.m_lightning *= LightningBoltDamageMultiplier;
+                }
+            }
         }
 
         private static GameObject CloneAndScaleProjectile(string clonedName, string sourceName)
@@ -130,18 +150,8 @@ namespace GrappleKnuckles
                 Requirements = new[]
                 {
                     new RequirementConfig { Item = DaggerSourcePrefabName, Amount = 2 },
-                    new RequirementConfig
-                    {
-                        Item = FrostfireEssencePrefabName,
-                        Amount = 1,
-                        AmountPerLevel = UpgradeEssenceCost,
-                    },
-                    new RequirementConfig
-                    {
-                        Item = RefinedEitrPrefabName,
-                        Amount = 0,
-                        AmountPerLevel = UpgradeRefinedEitrCost,
-                    },
+                    new RequirementConfig { Item = SurtlingCorePrefabName, Amount = 4, AmountPerLevel = 4 },
+                    new RequirementConfig { Item = RefinedEitrPrefabName, Amount = 10, AmountPerLevel = 5 },
                 },
             };
 
@@ -163,18 +173,9 @@ namespace GrappleKnuckles
                 Requirements = new[]
                 {
                     new RequirementConfig { Item = SwordSourcePrefabName, Amount = 1 },
-                    new RequirementConfig
-                    {
-                        Item = ThunderbloodEssencePrefabName,
-                        Amount = 2,
-                        AmountPerLevel = UpgradeEssenceCost,
-                    },
-                    new RequirementConfig
-                    {
-                        Item = RefinedEitrPrefabName,
-                        Amount = 0,
-                        AmountPerLevel = UpgradeRefinedEitrCost,
-                    },
+                    new RequirementConfig { Item = FlametalPrefabName, Amount = 15, AmountPerLevel = 10 },
+                    new RequirementConfig { Item = BloodstonePrefabName, Amount = 1, AmountPerLevel = 1 },
+                    new RequirementConfig { Item = CharredBonePrefabName, Amount = 3, AmountPerLevel = 2 },
                 },
             };
 

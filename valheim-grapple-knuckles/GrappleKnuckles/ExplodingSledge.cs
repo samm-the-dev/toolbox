@@ -32,7 +32,10 @@ namespace GrappleKnuckles
         public const string SplinterSourcePrefabName = "staff_clusterbombstaff_splinter_projectile"; // Staff of Fracturing's sub-munition
         public const string SplinterClonedPrefabName = "Burst_ExplodingSledge";
 
-        private const string FlametalPrefabName = "Flametal";
+        // "Flametal" is the pre-Ashlands-update legacy prefab ("Ancient
+        // Metal" in-game, $item_flametal_old) - use "FlametalNew"
+        // ($item_flametal), the real current item. See GrappleKnucklesPlugin.cs.
+        private const string FlametalPrefabName = "FlametalNew";
         private const string CharredBonePrefabName = "CharredBone";
 
         // "A little stronger than just one" splinter, per explicit direction.
@@ -45,13 +48,15 @@ namespace GrappleKnuckles
 
         public static void Init()
         {
-            ItemManager.OnItemsRegistered += CloneSledge;
+            // Item cloning uses OnVanillaPrefabsAvailable, not
+            // ItemManager.OnItemsRegistered - see GrappleKnucklesPlugin.cs.
+            PrefabManager.OnVanillaPrefabsAvailable += CloneSledge;
             PrefabManager.OnVanillaPrefabsAvailable += CloneSplinter;
         }
 
         public static void Dispose()
         {
-            ItemManager.OnItemsRegistered -= CloneSledge;
+            PrefabManager.OnVanillaPrefabsAvailable -= CloneSledge;
             PrefabManager.OnVanillaPrefabsAvailable -= CloneSplinter;
         }
 
@@ -108,7 +113,7 @@ namespace GrappleKnuckles
             }
         }
 
-        [HarmonyPatch(typeof(ObjectDB), nameof(ObjectDB.UpdateRegisters))]
+        [HarmonyPatch(typeof(ObjectDB), "UpdateRegisters")]
         private static class ObjectDB_UpdateRegisters_ExplodingSledgePatch
         {
             private static bool _applied;

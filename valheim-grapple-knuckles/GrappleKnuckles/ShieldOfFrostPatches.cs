@@ -4,7 +4,7 @@ using Logger = Jotunn.Logger;
 
 namespace GrappleKnuckles
 {
-    // Four distinct mechanics, all hooked onto real, confirmed vanilla
+    // Three distinct mechanics, all hooked onto real, confirmed vanilla
     // methods rather than reimplemented from scratch:
     //
     //   1. Eitr drain while blocking - Postfix on Humanoid.UpdateBlock(dt),
@@ -27,30 +27,36 @@ namespace GrappleKnuckles
     //      __instance.IsStaggering() right after the base call (vanilla has
     //      no distinct "block broken" event; a failed block just staggers
     //      the wielder inline, confirmed via decompile).
-    //   4. Omnidirectional blocking - Prefix/Postfix pair on BlockAttack.
-    //      Vanilla gates block to a frontal hemisphere via
-    //      Vector3.Dot(hit.m_dir, transform.forward) > 0 (confirmed exact
-    //      check). We temporarily rotate the wielder to face directly away
-    //      from the incoming hit for the duration of the call (guaranteeing
-    //      the dot product is negative), then restore their real rotation -
-    //      same "swap state, let original run, restore" trick the (since
-    //      removed) QualityTransferPatch.cs used, just applied to rotation
-    //      instead of item data. This is a plausible, low-risk technique on paper but
-    //      was never visually verified - a single-frame rotation snap could
-    //      be noticeable, or interact oddly with camera/animation. Flagged
-    //      in CLAUDE.md as worth watching for in-game.
     //
-    // NOT confirmed / higher-risk assumptions in this file:
-    //   - Humanoid.UseEitr(float) as the real method name/signature (by
-    //     analogy with the confirmed UseStamina and the confirmed
-    //     UpdateAttackBowDraw call pattern, but not independently verified).
-    //   - m_leftItem as the private field holding the equipped shield
-    //     (by analogy with the m_rightItem assumption used elsewhere in
-    //     this mod, not freshly confirmed this session).
-    //   - Character.Damage(HitData) as the real method to apply the frost
-    //     proc's damage directly to the attacker (extremely common pattern
-    //     in Valheim modding generally, but not decompile-confirmed in this
-    //     project's own research threads).
+    // Omnidirectional blocking (a rotation-swap trick on BlockAttack's
+    // frontal-arc check) was designed, decompile-verified as sign-correct,
+    // and then dropped per explicit direction ("too fiddly") before ever
+    // being tried in-game - see CLAUDE.md for the removed design if it's
+    // ever worth revisiting.
+    //
+    // Decompile-confirmed this session against the user's actual
+    // assembly_valheim.dll and Jotunn.dll 2.30.0 (see CLAUDE.md "Decompile
+    // verification pass" for the full list) - no longer just assumptions:
+    //   - Humanoid.UseEitr(float): inherited virtual from Character
+    //     (Player overrides it to drain over RPC for networking), confirmed.
+    //   - m_leftItem: confirmed protected field on Humanoid holding the
+    //     equipped left-hand/shield item.
+    //   - Character.Damage(HitData): confirmed public method.
+    //   - Humanoid.UpdateBlock(float)/BlockAttack(HitData, Character):
+    //     confirmed private/protected-override signatures match this file's
+    //     Harmony patches exactly.
+    //   - m_perfectBlockInterval (0.25f) and m_timedBlockBonus: confirmed:
+    //     vanilla's own parry check is
+    //     `m_timedBlockBonus > 1f && m_blockTimer != -1f && m_blockTimer < 0.25f`.
+    //     This file's replica (below) omits the `m_blockTimer != -1f` guard -
+    //     m_blockTimer is set to -1 whenever NOT currently blocking, so in
+    //     the (rare/edge-case) situation where BlockAttack fires while
+    //     m_blockTimer is exactly -1, this file would misfire the frost
+    //     proc as a "perfect parry" when vanilla itself would not grant the
+    //     timed-block bonus. Low severity (worst case: an extra frost proc
+    //     on a near-miss block), but worth matching vanilla's guard exactly.
+    //
+    // Still NOT confirmed / genuinely needs live testing or asset data:
     //   - Spawning the AoE burst via UnityEngine.Object.Instantiate rather
     //     than through Valheim's own ZNetScene spawn path - the burst
     //     prefab carries networked components (ZNetView/ZSyncTransform per
@@ -62,10 +68,6 @@ namespace GrappleKnuckles
     {
         private const float EitrDrainPerSecond = 4f;
         private const float ParryFrostDamage = 15f;
-
-        // Facing-direction restore state, captured in the omnidirectional
-        // Prefix and consumed by its paired Postfix on the same call.
-        private static Quaternion? _restoreRotation;
 
         private static bool IsWieldingShieldOfFrost(Humanoid humanoid)
         {
@@ -86,40 +88,9 @@ namespace GrappleKnuckles
         }
 
         [HarmonyPatch(typeof(Humanoid), "BlockAttack")]
-        [HarmonyPrefix]
-        private static void BlockAttack_Omnidirectional_Prefix(Humanoid __instance, HitData hit)
-        {
-            _restoreRotation = null;
-
-            if (hit == null || !IsWieldingShieldOfFrost(__instance))
-            {
-                return;
-            }
-
-            if (Vector3.Dot(hit.m_dir, __instance.transform.forward) <= 0f)
-            {
-                // Already a frontal hit; nothing to do.
-                return;
-            }
-
-            _restoreRotation = __instance.transform.rotation;
-            var awayFromHit = -hit.m_dir;
-            if (awayFromHit.sqrMagnitude > 0.0001f)
-            {
-                __instance.transform.rotation = Quaternion.LookRotation(awayFromHit.normalized, Vector3.up);
-            }
-        }
-
-        [HarmonyPatch(typeof(Humanoid), "BlockAttack")]
         [HarmonyPostfix]
-        private static void BlockAttack_Postfix(Humanoid __instance, HitData hit, Character attacker, bool __result)
+        private static void BlockAttack_Postfix(Humanoid __instance, Character attacker, bool __result)
         {
-            if (_restoreRotation is Quaternion rotation)
-            {
-                __instance.transform.rotation = rotation;
-                _restoreRotation = null;
-            }
-
             if (!IsWieldingShieldOfFrost(__instance))
             {
                 return;
@@ -132,8 +103,11 @@ namespace GrappleKnuckles
                     ?.m_shared?.m_timedBlockBonus ?? 1f;
 
                 // Recomputes vanilla's own perfect-block condition (confirmed
-                // m_perfectBlockInterval = 0.25f) to detect a parry.
-                if (blockTimer < 0.25f && timedBlockBonus > 1f)
+                // m_perfectBlockInterval = 0.25f, and the m_blockTimer != -1f
+                // guard vanilla also checks - m_blockTimer sits at -1 whenever
+                // not currently blocking, which would otherwise read as "under
+                // 0.25s" and misfire a parry proc).
+                if (blockTimer != -1f && blockTimer < 0.25f && timedBlockBonus > 1f)
                 {
                     ApplyFrostProc(attacker);
                 }

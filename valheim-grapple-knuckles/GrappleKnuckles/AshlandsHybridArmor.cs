@@ -111,7 +111,7 @@ namespace GrappleKnuckles
             effect.name = effectName;
             configure(effect);
 
-            ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(effect));
+            ItemManager.Instance.AddStatusEffect(new CustomStatusEffect(effect, fixReference: false));
 
             return effect;
         }

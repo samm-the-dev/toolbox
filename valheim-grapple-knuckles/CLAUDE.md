@@ -323,6 +323,27 @@ supporting assumptions were never independently re-verified this session:
   projectile's own VFX for the break effect only. A bubble visual is still
   an open idea, not implemented.
 
+## CORRECTION: GrapplingHook is Mistlands tier, not Deep North
+
+Every reference in this file and the README originally described
+`GrapplingHook` as Deep North content - **this was wrong**, caught by the
+user and independently confirmed via 4+ cross-referenced sources (high
+confidence): the Grappling Hook is entirely **Mistlands**-tier. It's
+crafted at the Black Forge from Yggdrasil Wood + Refined Eitr + Mandibles,
+plus a non-craftable "Hook" component looted from a Dvergr Treasure Chest
+in a Mistlands Infested Mine - all four inputs are Mistlands materials,
+none are Deep North. The "Deep North" framing in the original research
+conflated the hook's usefulness for navigating that biome's vertical
+dungeons with where it's actually obtained (it's a tool carried forward
+from Mistlands, not a Deep North unlock).
+
+This does NOT change Grapple Knuckles' own tier placement - it's gated by
+`FistGold` (genuinely Deep North), and a Deep North recipe consuming an
+easier-to-obtain Mistlands ingredient is normal, unremarkable progression.
+What it DOES change: see the Ashlands fist weapon idea below, whose
+"doesn't structurally work" objection was based on the now-corrected wrong
+premise.
+
 ## Open idea: Ashlands fist weapon
 
 A survey confirmed (reasonably well-supported via WebSearch, not from a
@@ -333,12 +354,12 @@ confidence), and the Deep North `FistGold` family (already used by Grapple
 Knuckles). A community discussion is cited as explicitly noting fist
 weapons have gone multiple biomes without a new entry.
 
-The idea floated was moving Grapple Knuckles itself into this gap, but
-that doesn't structurally work: Grapple Knuckles fundamentally requires
-the real `GrapplingHook` item as a recipe ingredient, and `GrapplingHook`
-is Deep North-only - Deep North sits *above* Ashlands in progression (the
-later, harder biome), so an Ashlands-tier item can't sensibly require a
-Deep North ingredient. If an Ashlands "chain fist" is still wanted, it
-would need to be a distinct new item using only Ashlands materials, not a
-re-tier of Grapple Knuckles - not yet designed or built, pending further
-direction.
+The idea floated was moving Grapple Knuckles itself into this gap.
+**Previously documented here as not structurally working, on the incorrect
+assumption that `GrapplingHook` was Deep North-only** - now that it's
+confirmed Mistlands-tier (which sits *below* Ashlands), that objection no
+longer holds: an Ashlands-tier item genuinely could use `GrapplingHook` as
+an ingredient without any progression-ordering conflict. Whether to
+actually build this (a distinct new Ashlands fist weapon using the hook,
+vs. leaving Grapple Knuckles where it is) is pending user direction - not
+yet designed or built.

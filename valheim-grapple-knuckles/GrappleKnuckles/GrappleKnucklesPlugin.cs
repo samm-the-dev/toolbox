@@ -19,7 +19,7 @@ namespace GrappleKnuckles
 
         // Vanilla prefabs we read from.
         public const string SourceItemPrefabName = "FistGold"; // Nord Knucklechains
-        public const string VanillaHookPrefabName = "GrapplingHook"; // Deep North grappling hook
+        public const string VanillaHookPrefabName = "GrapplingHook"; // Mistlands grappling hook (NOT Deep North - corrected, see CLAUDE.md)
         public const string VanillaHookProjectilePrefabName = "Projectile_GrapplingHook";
         public const string ClonedItemPrefabName = "FistGold_Grapple";
         public const string ClonedProjectilePrefabName = "Projectile_GrapplingHook_Knuckles";

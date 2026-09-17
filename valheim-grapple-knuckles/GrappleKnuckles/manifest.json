@@ -2,7 +2,7 @@
   "name": "GrappleKnuckles",
   "version_number": "0.1.0",
   "website_url": "",
-  "description": "Nord Knucklechains, but the special attack fires the Deep North grappling hook.",
+  "description": "Nord Knucklechains, but the special attack fires the Mistlands grappling hook.",
   "dependencies": [
     "denikson-BepInExPack_Valheim-5.4.2100",
     "ValheimModding-Jotunn-2.20.1"

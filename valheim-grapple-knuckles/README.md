@@ -15,11 +15,18 @@ survey - see `CLAUDE.md` for the full research trail):
 | Ashlands | Exploding Sledge | Frost splinter-burst secondary |
 | Deep North | Grapple Knuckles | The original item - grapple hook secondary attack |
 
-Crafted by combining **Nord Knucklechains** (`FistGold`) + the vanilla
-**Grappling Hook** (`GrapplingHook`, added in the Deep North update) at the
-**Black Forge** (`blackforge`), into a new item, **Grapple Knuckles**
+Crafted by combining **Nord Knucklechains** (`FistGold`, Deep North) + the
+vanilla **Grappling Hook** (`GrapplingHook`) at the **Black Forge**
+(`blackforge`), into a new item, **Grapple Knuckles**
 (`FistGold_Grapple`), whose secondary attack launches the grapple hook
-instead of Knucklechains' normal special move.
+instead of Knucklechains' normal special move. **Correction**: the
+Grappling Hook is actually **Mistlands**-tier (Black Forge, Yggdrasil
+Wood, Refined Eitr, Mandibles - confirmed via 4+ cross-referenced sources),
+not Deep North as originally assumed - the "Deep North" framing conflated
+the hook's usefulness for navigating that biome with where it's actually
+obtained. The recipe stays valid regardless (a Deep North item consuming
+an easier-to-get Mistlands one is normal progression), so this doesn't
+change Grapple Knuckles' own tier placement, just corrects the hook's.
 
 Grapple Knuckles is meant as an **alternative to enchanting** Knucklechains
 into Frostfire (`FistGold_FrostFire`) or Thunderblood

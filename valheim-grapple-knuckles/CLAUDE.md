@@ -417,6 +417,44 @@ without a new entry. Grapple Knuckles (see above) now fills this gap,
 per explicit direction, once the `GrapplingHook` tier correction made an
 Ashlands placement possible without a progression-ordering conflict.
 
+## IDEA (not built): Hover Cape - Feather Cape upgrade
+
+Queued during ideation, not implemented - needs real game file access to
+verify the core mechanism before building. Concept: a `CapeFeather`
+upgrade that lets the player hover/float midair (Hexen-wings style),
+activated by jumping again while already airborne, deactivated the same
+way, draining Eitr continuously while active.
+
+Two candidate implementations, and which is right is the open question:
+
+1. **Reuse a real vanilla flight state**, if one exists as a toggleable
+   Character/Player flag independent of devcommands-only debug/creative
+   fly mode (birds/fish movement and debug fly both suggest some kind of
+   internal "flying" character state exists in vanilla) - would fit this
+   mod's established "clone vanilla behavior, don't reimplement" pattern
+   used everywhere else (grapple hook, block mechanics, armor set
+   bonuses). **Needs decompile access to confirm the field/method exists
+   and whether it's reachable outside the debug command path.**
+2. **Fallback**: directly manipulate the player's rigidbody each
+   FixedUpdate (zero gravity, apply a small upward/hover force) instead -
+   more manual, but doesn't depend on an unconfirmed internal flight
+   state.
+
+Other pieces are lower-risk / already proven elsewhere in this mod:
+- Trigger (jump-while-airborne vs. grounded jump) needs the real
+  jump-input hook and a reliable "is grounded" check - likely exists
+  already for fall-damage purposes, needs confirming.
+- Eitr drain while active: same `UseEitr(rate * dt)` per-tick pattern
+  already used by Shield of Frost's block-hold drain (Postfix on
+  `Humanoid.UpdateBlock` there; would need an equivalent per-frame hook
+  here, e.g. a Postfix on Player's update loop).
+- Should verify this wouldn't collide with any other real jump-modifying
+  item/effect (double-jump-style buffs) before assuming the airborne-jump
+  input is free to repurpose.
+- Whether Feather Cape's existing fall-damage-reduction sits on a
+  `SharedData` field this upgrade can inherit directly, or needs its own
+  separate handling, is also unconfirmed.
+
 ## PrismBlade.cs / PrismBladePatches.cs
 
 New: an endgame Deep North two-handed sword (clones `THSwordGold`, "Nord

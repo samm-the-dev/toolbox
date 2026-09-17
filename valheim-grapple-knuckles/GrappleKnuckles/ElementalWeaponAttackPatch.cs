@@ -28,7 +28,6 @@ namespace GrappleKnuckles
             }
 
             if (ElementalWeapons.FireBoltProjectile == null ||
-                ElementalWeapons.FrostBoltProjectile == null ||
                 ElementalWeapons.LightningBoltProjectile == null)
             {
                 // Bolt projectiles not cloned yet; try again next call.
@@ -36,17 +35,15 @@ namespace GrappleKnuckles
             }
 
             var fireDagger = __instance.GetItemPrefab(ElementalWeapons.FireDaggerPrefabName);
-            var frostDagger = __instance.GetItemPrefab(ElementalWeapons.FrostDaggerPrefabName);
             var lightningSword = __instance.GetItemPrefab(ElementalWeapons.LightningSwordPrefabName);
 
-            if (fireDagger == null || frostDagger == null || lightningSword == null)
+            if (fireDagger == null || lightningSword == null)
             {
                 // Not all registered yet this pass; try again next call.
                 return;
             }
 
             WireSecondaryAttack(fireDagger, ElementalWeapons.FireBoltProjectile, "Fire Dagger");
-            WireSecondaryAttack(frostDagger, ElementalWeapons.FrostBoltProjectile, "Frost Dagger");
             WireSecondaryAttack(lightningSword, ElementalWeapons.LightningBoltProjectile, "Lightning Sword");
 
             _applied = true;

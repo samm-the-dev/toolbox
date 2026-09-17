@@ -8,15 +8,17 @@ using Logger = Jotunn.Logger;
 
 namespace GrappleKnuckles
 {
-    // Three mage-flavored melee weapons, alongside Grapple Knuckles and the
-    // Fenris Mage armor: a fire dagger and a frost dagger (both cloned from
-    // Skoll and Hati for its dual-blade animation, confirmed to be a single
-    // TwoHandedWeapon item - vanilla has no true off-hand dual-wield slot -
-    // reskinned toward Nord Dagger's appearance), and a lightning sword
-    // (cloned from Nord Sword). Each fires a small Eitr-costed bolt as its
-    // secondary attack, reusing a real vanilla staff's projectile instead of
-    // reimplementing spell physics/VFX, same approach as Grapple Knuckles'
-    // hook launch.
+    // Two mage-flavored melee weapons, alongside Grapple Knuckles and the
+    // Fenris Mage armor: a single Fire Dagger (cloned from Skoll and Hati
+    // for its dual-blade animation, confirmed to be a single TwoHandedWeapon
+    // item - vanilla has no true off-hand dual-wield slot - reskinned
+    // toward Nord Dagger's appearance), and a Lightning Sword (cloned from
+    // Nord Sword). The frost half of the original fire/frost dagger pair
+    // idea moved to a separate magic shield instead (see ShieldOfFrost.cs);
+    // this is a single dual-wield weapon, not a pair. Each fires a small
+    // Eitr-costed bolt as its secondary attack, reusing a real vanilla
+    // staff's projectile instead of reimplementing spell physics/VFX, same
+    // approach as Grapple Knuckles' hook launch.
     //
     // Confirmed facts this relies on:
     //   - KnifeGold = "Nord Dagger", SwordGold = "Nord Sword",
@@ -30,9 +32,9 @@ namespace GrappleKnuckles
     //   - RequirementConfig.AmountPerLevel (Jötunn) maps directly to
     //     vanilla's own Piece.Requirement.m_amountPerLevel - upgrade cost
     //     scaling is native vanilla behavior, not custom logic.
-    //   - Elemental damage (SharedData.m_damages.m_fire/m_frost) inherently
-    //     procs the matching vanilla status effect (burning/freezing) once
-    //     that damage type is > 0 - no separate on-hit effect wiring needed
+    //   - Elemental damage (SharedData.m_damages.m_fire etc.) inherently
+    //     procs the matching vanilla status effect (burning) once that
+    //     damage type is > 0 - no separate on-hit effect wiring needed
     //     (same mechanism the real Frostfire-enchanted weapons use).
     //   - Attack.m_attackEitr (confirmed field, alongside m_attackStamina)
     //     is how a staff-style Eitr cost attaches to an attack.
@@ -49,7 +51,6 @@ namespace GrappleKnuckles
         public const string DualBladeAnimationSourcePrefabName = "KnifeSkollAndHati";
         public const string DaggerMeshSourcePrefabName = "KnifeGold"; // Nord Dagger
         public const string FireDaggerPrefabName = "KnifeSkollAndHati_Fire";
-        public const string FrostDaggerPrefabName = "KnifeSkollAndHati_Frost";
 
         public const string SwordSourcePrefabName = "SwordGold"; // Nord Sword
         public const string LightningSwordPrefabName = "SwordGold_Lightning";
@@ -59,11 +60,9 @@ namespace GrappleKnuckles
         private const string RefinedEitrPrefabName = "Eitr";
 
         public const string FireBoltSourcePrefabName = "staff_fireball_projectile"; // Staff of Embers
-        public const string FrostBoltSourcePrefabName = "staff_clusterbombstaff_projectile"; // Staff of Fracturing
         public const string LightningBoltSourcePrefabName = "staff_lightning_projectile"; // Dundr
 
         public const string FireBoltClonedPrefabName = "Bolt_Fire_Dagger";
-        public const string FrostBoltClonedPrefabName = "Bolt_Frost_Dagger";
         public const string LightningBoltClonedPrefabName = "Bolt_Lightning_Sword";
 
         // Placeholder - the real vanilla essence cost to enchant Knucklechains
@@ -83,7 +82,6 @@ namespace GrappleKnuckles
         private const float SwordLightningDamageBonus = 20f;
 
         public static GameObject FireBoltProjectile { get; private set; }
-        public static GameObject FrostBoltProjectile { get; private set; }
         public static GameObject LightningBoltProjectile { get; private set; }
 
         public static void Init()
@@ -101,7 +99,6 @@ namespace GrappleKnuckles
         private static void CloneBoltProjectiles()
         {
             FireBoltProjectile ??= CloneAndScaleProjectile(FireBoltClonedPrefabName, FireBoltSourcePrefabName);
-            FrostBoltProjectile ??= CloneAndScaleProjectile(FrostBoltClonedPrefabName, FrostBoltSourcePrefabName);
             LightningBoltProjectile ??= CloneAndScaleProjectile(LightningBoltClonedPrefabName, LightningBoltSourcePrefabName);
         }
 
@@ -129,8 +126,7 @@ namespace GrappleKnuckles
         {
             try
             {
-                CloneDagger(FireDaggerPrefabName, "$item_fire_dagger", "$item_fire_dagger_description", isFire: true);
-                CloneDagger(FrostDaggerPrefabName, "$item_frost_dagger", "$item_frost_dagger_description", isFire: false);
+                CloneDagger();
                 CloneSword();
             }
             catch (Exception ex)
@@ -139,12 +135,12 @@ namespace GrappleKnuckles
             }
         }
 
-        private static void CloneDagger(string clonedName, string nameToken, string descriptionToken, bool isFire)
+        private static void CloneDagger()
         {
             var itemConfig = new ItemConfig
             {
-                Name = nameToken,
-                Description = descriptionToken,
+                Name = "$item_fire_dagger",
+                Description = "$item_fire_dagger_description",
                 CraftingStation = "blackforge",
                 Requirements = new[]
                 {
@@ -164,22 +160,14 @@ namespace GrappleKnuckles
                 },
             };
 
-            var clonedItem = new CustomItem(clonedName, DualBladeAnimationSourcePrefabName, itemConfig);
+            var clonedItem = new CustomItem(FireDaggerPrefabName, DualBladeAnimationSourcePrefabName, itemConfig);
             ItemManager.Instance.AddItem(clonedItem);
 
-            var shared = clonedItem.ItemDrop.m_itemData.m_shared;
-            if (isFire)
-            {
-                shared.m_damages.m_fire += DaggerElementalDamageBonus;
-            }
-            else
-            {
-                shared.m_damages.m_frost += DaggerElementalDamageBonus;
-            }
+            clonedItem.ItemDrop.m_itemData.m_shared.m_damages.m_fire += DaggerElementalDamageBonus;
 
-            TryReskinMesh(clonedItem.ItemDrop.gameObject, clonedName);
+            TryReskinMesh(clonedItem.ItemDrop.gameObject, FireDaggerPrefabName);
 
-            Logger.LogInfo($"Cloned {DualBladeAnimationSourcePrefabName} -> {clonedName}");
+            Logger.LogInfo($"Cloned {DualBladeAnimationSourcePrefabName} -> {FireDaggerPrefabName}");
         }
 
         private static void CloneSword()

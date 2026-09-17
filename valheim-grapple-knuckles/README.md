@@ -158,47 +158,42 @@ mod.
 
 ## Elemental weapons (`ElementalWeapons.cs` / `ElementalWeaponAttackPatch.cs`)
 
-Three more mage-flavored melee weapons: a **Fire Dagger** and a **Frost
-Dagger** (each cloned from `KnifeSkollAndHati` for its dual-blade swing
-animation - vanilla has no true off-hand dual-wield slot, confirmed - then
-best-effort reskinned to look like `KnifeGold`/"Nord Dagger" instead), and
-a **Lightning Sword** (cloned from `SwordGold`/"Nord Sword"). Each weapon's
-secondary attack fires a small, Eitr-costed bolt - a scaled-down clone of a
-real vanilla staff projectile, same "reuse vanilla's own spell/VFX instead
-of reimplementing it" approach as Grapple Knuckles' hook launch:
+Two more mage-flavored melee weapons: a single **Fire Dagger** (cloned from
+`KnifeSkollAndHati` for its dual-blade swing animation - vanilla has no true
+off-hand dual-wield slot, confirmed - then best-effort reskinned to look
+like `KnifeGold`/"Nord Dagger" instead), and a **Lightning Sword** (cloned
+from `SwordGold`/"Nord Sword"). This is a single dual-wield weapon, not a
+fire/frost pair - the frost half of that original idea moved to a separate
+shield instead (see below). Each weapon's secondary attack fires a small,
+Eitr-costed bolt - a scaled-down clone of a real vanilla staff projectile,
+same "reuse vanilla's own spell/VFX instead of reimplementing it" approach
+as Grapple Knuckles' hook launch:
 
 - Fire Dagger's bolt clones "Staff of Embers"' projectile
   (`staff_fireball_projectile`).
-- Frost Dagger's bolt clones "Staff of Fracturing"' projectile
-  (`staff_clusterbombstaff_projectile`).
 - Lightning Sword's bolt clones "Dundr" the lightning staff's projectile
   (`staff_lightning_projectile`).
 
-All three are cloned at half scale and wired via the same
+Both are cloned at half scale and wired via the same
 `ObjectDB.UpdateRegisters`-postfix pattern used for Grapple Knuckles, with
 `Attack.m_attackEitr` (confirmed real field, alongside the already-used
 `m_attackStamina`) giving the secondary attack an Eitr cost instead of a
 pure stamina one - the first Eitr-gated melee attack in this mod.
 
-Each dagger gets a flat elemental damage bonus (+20 fire or +20 frost on
-`SharedData.m_damages`) rather than a separate on-hit effect: elemental
-damage inherently procs the matching vanilla status effect
-(burning/freezing) once it's above zero, the same mechanism the real
-Frostfire-enchanted weapons use, so no extra wiring is needed. The
-Lightning Sword gets +20 lightning damage the same way. Since the design
-settled on two separate daggers rather than one alternating weapon, there's
-no need for a persistent per-cast "which element is next" toggle (which
-would have been awkward anyway - vanilla items have no generic per-instance
-custom-data field to store that in).
+The Fire Dagger gets a flat +20 fire damage bonus on `SharedData.m_damages`
+rather than a separate on-hit effect: elemental damage inherently procs the
+matching vanilla status effect (burning) once it's above zero, the same
+mechanism the real Frostfire-enchanted weapons use, so no extra wiring is
+needed. The Lightning Sword gets +20 lightning damage the same way.
 
-Recipes: 2x Nord Dagger + 1x Frostfire Essence per dagger; 1x Nord Sword +
-2x Thunderblood Essence for the sword; all at the Black Forge. Upgrading
-costs additional essence (`RequirementConfig.AmountPerLevel`, confirmed to
-map directly to vanilla's own per-quality-level resource scaling - no
-custom logic needed) plus some Refined Eitr. **The exact upgrade numbers
-are placeholders** - the real vanilla essence cost to enchant Knucklechains
-(which "double essences" was meant to be relative to) wasn't reachable from
-this research environment; see `CLAUDE.md`.
+Recipes: 2x Nord Dagger + 1x Frostfire Essence for the dagger; 1x Nord
+Sword + 2x Thunderblood Essence for the sword; both at the Black Forge.
+Upgrading costs additional essence (`RequirementConfig.AmountPerLevel`,
+confirmed to map directly to vanilla's own per-quality-level resource
+scaling - no custom logic needed) plus some Refined Eitr. **The exact
+upgrade numbers are placeholders** - the real vanilla essence cost to
+enchant Knucklechains (which "double essences" was meant to be relative to)
+wasn't reachable from this research environment; see `CLAUDE.md`.
 
 **Biggest open risk:** the mesh reskin from Skoll and Hati to Nord Dagger's
 appearance is a real, precedented technique but was never visually

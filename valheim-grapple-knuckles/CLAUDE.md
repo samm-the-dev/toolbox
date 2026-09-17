@@ -133,14 +133,13 @@ mismatched game versions, or just wrong.
   the user, not research - not independently verified, but also not a
   guess on my part.
 - Secondary attack numbers (10 Eitr cost, 5 stamina, 2s reload) and
-  elemental damage bonuses (+20 fire/frost/lightning) are arbitrary
-  starting points, same as every other tuning number in this mod.
-- The three bolt projectiles are cloned at half scale
-  (`BoltScale = 0.5f`) via the same `PrefabManager.CreateClonedPrefab`
-  pattern as the grapple hook - confirmed technique, but the *visual*
-  result of scaling a staff projectile prefab down (does the VFX/particle
-  system scale proportionally, or look broken at non-1x scale?) was never
-  checked.
+  elemental damage bonuses (+20 fire/lightning) are arbitrary starting
+  points, same as every other tuning number in this mod.
+- The two bolt projectiles are cloned at half scale (`BoltScale = 0.5f`)
+  via the same `PrefabManager.CreateClonedPrefab` pattern as the grapple
+  hook - confirmed technique, but the *visual* result of scaling a staff
+  projectile prefab down (does the VFX/particle system scale
+  proportionally, or look broken at non-1x scale?) was never checked.
 - `Attack.m_attackEitr` is decompile-confirmed as a real field, but whether
   Eitr actually gets consumed/checked correctly for a *melee* weapon's
   secondary attack (as opposed to a staff's primary attack, which is what
@@ -148,38 +147,49 @@ mismatched game versions, or just wrong.
   this mod is the first thing giving a `OneHandedWeapon`/`TwoHandedWeapon`-
   type item an Eitr cost, which might behave differently than expected
   (e.g. no Eitr-cost UI indicator, since that UI may be staff-specific).
-- No dual-wield system exists in vanilla (confirmed) - the fire/frost
-  "daggers" are each a single `TwoHandedWeapon`-type item (Skoll and Hati's
-  own type), not two independently equipped one-handed weapons. If that's
-  not the feel you want in practice, the alternative is cloning plain
-  `KnifeGold` directly (skip the reskin entirely, since it'd already be the
-  right model) at the cost of losing the dual-blade animation.
+- No dual-wield system exists in vanilla (confirmed) - the Fire Dagger is a
+  single `TwoHandedWeapon`-type item (Skoll and Hati's own type), not two
+  independently equipped one-handed weapons. If that's not the feel you
+  want in practice, the alternative is cloning plain `KnifeGold` directly
+  (skip the reskin entirely, since it'd already be the right model) at the
+  cost of losing the dual-blade animation.
+- A frost dagger (built the same way, cloned from `KnifeSkollAndHati` with
+  +20 frost damage) was built and then removed per explicit direction: the
+  design settled on one Fire Dagger, with the frost identity moved to a
+  separate shield instead. If you want it back, it's a near-identical copy
+  of `CloneDagger()`.
 
 ## Whole-mod gaps
 
 - **No localization file exists anywhere in this project.** Every item
   name/description (`$item_fistgold_grapple`, `$item_fenrismage_chest`,
-  `$item_fire_dagger`, `$item_frost_dagger`, `$item_lightning_sword`, etc.)
-  is an unlocalized token - in-game, these will likely show as the literal
-  raw string, not readable text, until a `Translations/English.json` (or
-  Jötunn's localization API) is added.
+  `$item_fire_dagger`, `$item_lightning_sword`, etc.) is an unlocalized
+  token - in-game, these will likely show as the literal raw string, not
+  readable text, until a `Translations/English.json` (or Jötunn's
+  localization API) is added.
 - Nothing in this mod has been run in an actual Valheim session. Every
   "confirmed" fact above was confirmed via someone else's source code, not
   by observing this mod's actual behavior.
 
-## Open idea, not yet designed or researched
+## Open idea, in progress at time of writing: Shield of Frost
 
-User's next idea (as of this writing, not yet built): a magic shield that
-channels a small Eitr drain per second while blocking (instead of vanilla's
-stamina-cost block), visually a smaller version of the Staff of
-Protection's bubble, and working in all directions rather than a frontal
-arc (if vanilla shields are frontal-only - not yet confirmed). This would
-be a new *kind* of mechanic for this mod: a continuous per-second resource
-drain gated on a held input state (blocking), rather than a one-shot
-attack or a static item-stat change like everything built so far. Likely
-needs a Harmony patch on whatever method handles block start/hold/end
-(unconfirmed - not yet researched), not just `SharedData`/`Attack` field
-edits. Also unconfirmed: whether vanilla block is already omnidirectional
-or arc-limited, and how the Staff of Protection's bubble VFX is actually
-implemented (worth reusing if it's a clean prefab reference, same pattern
-as the grapple hook's projectile reuse).
+Not yet built. Design as of this writing: a frost-themed magic shield,
+replacing what was originally going to be a Frost Dagger, that:
+- Channels a small Eitr drain per second while actively blocking (instead
+  of, or alongside, vanilla's stamina-cost block).
+- Works omnidirectionally if vanilla shields don't already (unconfirmed).
+- Triggers a frost AoE burst when the shield "breaks" (a hit exceeds its
+  block power and staggers the block).
+- On a successful parry, procs a frost effect and doubles damage - unclear
+  yet whether that means the parry's own bonus damage or the wielder's
+  next attack.
+- Visually, a smaller version of the Staff of Protection's bubble.
+
+This is a new *kind* of mechanic for this mod: a continuous per-second
+resource drain gated on a held input state (blocking), plus hooking two
+distinct combat events (block-break, parry) that nothing built so far has
+touched - not a one-shot attack or a static item-stat change. A research
+pass on the real parry/block-break/channel mechanics was launched but its
+results aren't reflected in this file yet as of this writing - check for a
+newer version of this section, or the actual `ShieldOfFrost.cs` (if it
+exists yet) for what actually got confirmed and built.

@@ -158,16 +158,17 @@ mod.
 
 ## Elemental weapons (`ElementalWeapons.cs` / `ElementalWeaponAttackPatch.cs`)
 
-Two more mage-flavored melee weapons: a single **Fire Dagger** (cloned from
-`KnifeSkollAndHati` for its dual-blade swing animation - vanilla has no true
-off-hand dual-wield slot, confirmed - then best-effort reskinned to look
-like `KnifeGold`/"Nord Dagger" instead), and a **Lightning Sword** (cloned
-from `SwordGold`/"Nord Sword"). This is a single dual-wield weapon, not a
-fire/frost pair - the frost half of that original idea moved to a separate
-shield instead (see below). Each weapon's secondary attack fires a small,
-Eitr-costed bolt - a scaled-down clone of a real vanilla staff projectile,
-same "reuse vanilla's own spell/VFX instead of reimplementing it" approach
-as Grapple Knuckles' hook launch:
+Two more mage-flavored melee weapons: a **Fire Dagger** (cloned directly
+from `KnifeGold`/"Nord Dagger" - an earlier version tried cloning
+`KnifeSkollAndHati` for a dual-wield animation plus a mesh reskin, but that
+was dropped per explicit direction in favor of just cloning the dagger
+whose appearance was wanted in the first place), and a **Lightning Sword**
+(cloned from `SwordGold`/"Nord Sword"). The frost half of the original
+fire/frost dagger pair idea moved to a separate shield instead (see below).
+Each weapon's secondary attack fires a small, Eitr-costed bolt - a
+scaled-down clone of a real vanilla staff projectile, same "reuse vanilla's
+own spell/VFX instead of reimplementing it" approach as Grapple Knuckles'
+hook launch:
 
 - Fire Dagger's bolt clones "Staff of Embers"' projectile
   (`staff_fireball_projectile`).
@@ -194,13 +195,6 @@ scaling - no custom logic needed) plus some Refined Eitr. **The exact
 upgrade numbers are placeholders** - the real vanilla essence cost to
 enchant Knucklechains (which "double essences" was meant to be relative to)
 wasn't reachable from this research environment; see `CLAUDE.md`.
-
-**Biggest open risk:** the mesh reskin from Skoll and Hati to Nord Dagger's
-appearance is a real, precedented technique but was never visually
-verified - if the daggers' blades are skinned/bone-rigged meshes rather
-than static ones, the swap could look distorted rather than clean. Falls
-back gracefully to Skoll and Hati's own appearance on any mismatch rather
-than breaking, but check this first in-game. Full details in `CLAUDE.md`.
 
 **Status:** implemented, untested in-game, same caveats as the rest of this
 mod - see `CLAUDE.md` for the full list of what to verify.

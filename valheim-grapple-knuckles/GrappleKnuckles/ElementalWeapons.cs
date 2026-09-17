@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using Jotunn.Configs;
 using Jotunn.Entities;
 using Jotunn.Managers;
@@ -9,23 +8,18 @@ using Logger = Jotunn.Logger;
 namespace GrappleKnuckles
 {
     // Two mage-flavored melee weapons, alongside Grapple Knuckles and the
-    // Fenris Mage armor: a single Fire Dagger (cloned from Skoll and Hati
-    // for its dual-blade animation, confirmed to be a single TwoHandedWeapon
-    // item - vanilla has no true off-hand dual-wield slot - reskinned
-    // toward Nord Dagger's appearance), and a Lightning Sword (cloned from
-    // Nord Sword). The frost half of the original fire/frost dagger pair
-    // idea moved to a separate magic shield instead (see ShieldOfFrost.cs);
-    // this is a single dual-wield weapon, not a pair. Each fires a small
-    // Eitr-costed bolt as its secondary attack, reusing a real vanilla
-    // staff's projectile instead of reimplementing spell physics/VFX, same
-    // approach as Grapple Knuckles' hook launch.
+    // Fenris Mage armor: a Fire Dagger (cloned directly from Nord Dagger -
+    // dropped the earlier Skoll-and-Hati dual-wield/reskin idea, per
+    // explicit direction, so no mesh-swap risk here) and a Lightning Sword
+    // (cloned from Nord Sword). The frost half of the original fire/frost
+    // dagger pair idea moved to a separate magic shield instead (see
+    // ShieldOfFrost.cs, once built). Each weapon fires a small Eitr-costed
+    // bolt as its secondary attack, reusing a real vanilla staff's
+    // projectile instead of reimplementing spell physics/VFX, same approach
+    // as Grapple Knuckles' hook launch.
     //
     // Confirmed facts this relies on:
-    //   - KnifeGold = "Nord Dagger", SwordGold = "Nord Sword",
-    //     KnifeSkollAndHati = "Skoll and Hati" (a single TwoHandedWeapon
-    //     item with its own dual-blade swing animation - there is no
-    //     vanilla off-hand equip slot to build a true two-item dual-wield
-    //     system on).
+    //   - KnifeGold = "Nord Dagger", SwordGold = "Nord Sword" - real prefabs.
     //   - OrbFrostFire = "Frostfire Essence", OrbThunderBlood =
     //     "Thunderblood Essence", Eitr = "Refined Eitr" - real material
     //     prefab names.
@@ -38,19 +32,10 @@ namespace GrappleKnuckles
     //     (same mechanism the real Frostfire-enchanted weapons use).
     //   - Attack.m_attackEitr (confirmed field, alongside m_attackStamina)
     //     is how a staff-style Eitr cost attaches to an attack.
-    //   - Mesh reskinning (swap MeshFilter.sharedMesh / SkinnedMeshRenderer
-    //     .sharedMesh on a clone's child renderers) is a real, precedented
-    //     technique (the CustomMeshes mod does exactly this) and confirmed
-    //     decoupled from animation - but whether Skoll and Hati's blades are
-    //     skinned (bone-rigged) or static meshes was NOT confirmed, so this
-    //     is implemented defensively (try/catch, logged, falls back to the
-    //     clone's original appearance on any mismatch) and flagged in
-    //     CLAUDE.md as the one part most likely to need live-game iteration.
     internal static class ElementalWeapons
     {
-        public const string DualBladeAnimationSourcePrefabName = "KnifeSkollAndHati";
-        public const string DaggerMeshSourcePrefabName = "KnifeGold"; // Nord Dagger
-        public const string FireDaggerPrefabName = "KnifeSkollAndHati_Fire";
+        public const string DaggerSourcePrefabName = "KnifeGold"; // Nord Dagger
+        public const string FireDaggerPrefabName = "KnifeGold_Fire";
 
         public const string SwordSourcePrefabName = "SwordGold"; // Nord Sword
         public const string LightningSwordPrefabName = "SwordGold_Lightning";
@@ -144,7 +129,7 @@ namespace GrappleKnuckles
                 CraftingStation = "blackforge",
                 Requirements = new[]
                 {
-                    new RequirementConfig { Item = DaggerMeshSourcePrefabName, Amount = 2 },
+                    new RequirementConfig { Item = DaggerSourcePrefabName, Amount = 2 },
                     new RequirementConfig
                     {
                         Item = FrostfireEssencePrefabName,
@@ -160,14 +145,12 @@ namespace GrappleKnuckles
                 },
             };
 
-            var clonedItem = new CustomItem(FireDaggerPrefabName, DualBladeAnimationSourcePrefabName, itemConfig);
+            var clonedItem = new CustomItem(FireDaggerPrefabName, DaggerSourcePrefabName, itemConfig);
             ItemManager.Instance.AddItem(clonedItem);
 
             clonedItem.ItemDrop.m_itemData.m_shared.m_damages.m_fire += DaggerElementalDamageBonus;
 
-            TryReskinMesh(clonedItem.ItemDrop.gameObject, FireDaggerPrefabName);
-
-            Logger.LogInfo($"Cloned {DualBladeAnimationSourcePrefabName} -> {FireDaggerPrefabName}");
+            Logger.LogInfo($"Cloned {DaggerSourcePrefabName} -> {FireDaggerPrefabName}");
         }
 
         private static void CloneSword()
@@ -201,69 +184,6 @@ namespace GrappleKnuckles
             clonedItem.ItemDrop.m_itemData.m_shared.m_damages.m_lightning += SwordLightningDamageBonus;
 
             Logger.LogInfo($"Cloned {SwordSourcePrefabName} -> {LightningSwordPrefabName}");
-        }
-
-        // Best-effort reskin: swap the clone's mesh/material for the Nord
-        // Dagger's, matched by renderer order. Whether Skoll and Hati's
-        // blades are skinned (bone-rigged) meshes - which could distort if
-        // the replacement isn't rigged to a compatible skeleton - was never
-        // confirmed; this degrades gracefully to the clone's original
-        // appearance on any mismatch or exception rather than breaking the
-        // item.
-        private static void TryReskinMesh(GameObject target, string context)
-        {
-            var meshSource = PrefabManager.Instance.GetPrefab(DaggerMeshSourcePrefabName);
-            if (meshSource == null)
-            {
-                Logger.LogWarning($"{context}: mesh source '{DaggerMeshSourcePrefabName}' not found; keeping original appearance.");
-                return;
-            }
-
-            try
-            {
-                var targetFilters = target.GetComponentsInChildren<MeshFilter>(true);
-                var sourceFilters = meshSource.GetComponentsInChildren<MeshFilter>(true);
-                var targetSkinned = target.GetComponentsInChildren<SkinnedMeshRenderer>(true);
-                var sourceSkinned = meshSource.GetComponentsInChildren<SkinnedMeshRenderer>(true);
-
-                var swapped = 0;
-                foreach (var (targetFilter, sourceFilter) in targetFilters.Zip(sourceFilters, (a, b) => (a, b)))
-                {
-                    targetFilter.sharedMesh = sourceFilter.sharedMesh;
-                    var targetRenderer = targetFilter.GetComponent<MeshRenderer>();
-                    var sourceRenderer = sourceFilter.GetComponent<MeshRenderer>();
-                    if (targetRenderer != null && sourceRenderer != null)
-                    {
-                        targetRenderer.sharedMaterials = sourceRenderer.sharedMaterials;
-                    }
-
-                    swapped++;
-                }
-
-                foreach (var (targetSkin, sourceSkin) in targetSkinned.Zip(sourceSkinned, (a, b) => (a, b)))
-                {
-                    targetSkin.sharedMesh = sourceSkin.sharedMesh;
-                    targetSkin.sharedMaterials = sourceSkin.sharedMaterials;
-                    swapped++;
-                }
-
-                if (targetFilters.Length != sourceFilters.Length || targetSkinned.Length != sourceSkinned.Length)
-                {
-                    Logger.LogWarning(
-                        $"{context}: renderer count mismatch vs '{DaggerMeshSourcePrefabName}' " +
-                        $"(MeshFilter {targetFilters.Length} vs {sourceFilters.Length}, " +
-                        $"SkinnedMeshRenderer {targetSkinned.Length} vs {sourceSkinned.Length}) - " +
-                        "reskin is partial/best-effort, verify appearance in-game.");
-                }
-                else
-                {
-                    Logger.LogInfo($"{context}: reskinned {swapped} renderer(s) to match '{DaggerMeshSourcePrefabName}'.");
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.LogWarning($"{context}: mesh reskin failed, keeping original appearance: {ex}");
-            }
         }
     }
 }

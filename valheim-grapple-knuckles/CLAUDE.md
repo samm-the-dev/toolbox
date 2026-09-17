@@ -107,19 +107,11 @@ mismatched game versions, or just wrong.
 
 ## ElementalWeapons.cs / ElementalWeaponAttackPatch.cs
 
-- **The mesh reskin (`TryReskinMesh`) is the single riskiest thing in this
-  mod.** It clones `KnifeSkollAndHati` (for its dual-blade animation) and
-  tries to swap its blade mesh/material for `KnifeGold`'s (Nord Dagger), by
-  matching `MeshFilter`/`SkinnedMeshRenderer` components in child-order
-  between the two prefabs. This is a real, precedented technique (confirmed
-  via the `CustomMeshes` mod), and confirmed decoupled from animation - but
-  whether Skoll and Hati's blades are skinned/bone-rigged meshes was never
-  confirmed, and if they are, a mismatched skeleton between the two prefabs
-  could produce a badly distorted result rather than a clean reskin. It
-  degrades gracefully (logs a warning, keeps the original Skoll-and-Hati
-  appearance) on any renderer-count mismatch or exception, but "doesn't
-  crash" isn't the same as "looks right" - check the BepInEx log for the
-  reskin warning/info line, then look at the item in-game.
+- The Fire Dagger is now a direct clone of `KnifeGold` (Nord Dagger) - an
+  earlier version cloned `KnifeSkollAndHati` instead (for its dual-blade
+  animation) and attempted a mesh-reskin toward Nord Dagger's appearance,
+  but that whole dual-wield/reskin approach was dropped per explicit
+  direction. No mesh-swap risk in the current version.
 - **Essence/Eitr upgrade cost numbers are placeholders.** The real vanilla
   essence cost to enchant Knucklechains into Frostfire/Thunderblood
   couldn't be found from this environment (recipe requirement amounts are
@@ -147,17 +139,11 @@ mismatched game versions, or just wrong.
   this mod is the first thing giving a `OneHandedWeapon`/`TwoHandedWeapon`-
   type item an Eitr cost, which might behave differently than expected
   (e.g. no Eitr-cost UI indicator, since that UI may be staff-specific).
-- No dual-wield system exists in vanilla (confirmed) - the Fire Dagger is a
-  single `TwoHandedWeapon`-type item (Skoll and Hati's own type), not two
-  independently equipped one-handed weapons. If that's not the feel you
-  want in practice, the alternative is cloning plain `KnifeGold` directly
-  (skip the reskin entirely, since it'd already be the right model) at the
-  cost of losing the dual-blade animation.
-- A frost dagger (built the same way, cloned from `KnifeSkollAndHati` with
-  +20 frost damage) was built and then removed per explicit direction: the
-  design settled on one Fire Dagger, with the frost identity moved to a
-  separate shield instead. If you want it back, it's a near-identical copy
-  of `CloneDagger()`.
+- A frost dagger (+20 frost damage instead of fire, otherwise identical)
+  was built and then removed per explicit direction: the design settled on
+  one Fire Dagger, with the frost identity moved to a separate shield
+  instead. If you want it back, it's a near-identical copy of
+  `CloneDagger()`.
 
 ## Whole-mod gaps
 

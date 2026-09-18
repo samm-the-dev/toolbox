@@ -1380,3 +1380,246 @@ identical assumptions already accepted elsewhere in this mod:**
 tooltips/combat text as expected, whether the element-swap message
 displays correctly, and whether `m_variant` round-trips correctly through
 a full save/load cycle for this specific item.
+
+## IDEAS (not built): a Mountain-tier mobility pair, and two Ashlands cloaks
+
+A round of ideation (2026-09-18) produced four more queued concepts, none
+implemented yet. All grew out of an observation worth stating explicitly:
+Mistlands has exactly two real mobility items - the Grappling Hook
+(traversal) and Feather Cape (fall safety) - and this mod already
+extrapolated both of those forward a tier (Grapple Knuckles = the
+Ashlands hook upgrade; the Hover Cape idea above = the Deep North cape
+upgrade). The ideas below extrapolate the same two axes *backward* one
+tier, to Mountain, to complete a 3-tier arc for each: Mountain -> Mistlands
+-> (Ashlands or Deep North).
+
+### Fenris Belt (Mountain, utility belt)
+
+Clones the real Strength belt (Megingjord), recolored black/silver, but
+**deliberately drops Megingjord's own +150 carry weight** - the intent is
+a distinct item, not a strict upgrade of it. Materials: Fenris Hair +
+Silver + (Wolf Pelt or Leather Scraps) - same material family as the
+existing Fenris Mage armor, unverified exact prefab spellings.
+
+**Finalized design, per explicit direction**: day/night-conditional
+effects rather than flat always-on stats -
+- **Day**: +5% movement speed, -10% dodge stamina cost.
+- **Night**: +10% movement speed, plus a stealth/noise-reduction effect.
+
+Balance reasoning (see the cape-roster research below for the numbers
+this was checked against): the real **Asksvin Cloak** (Ashlands) grants
+an unconditional -15% dodge stamina cost as one of three effects on a
+single item, and the real **Fenris armor** set grants +9% movement speed
+total (reported as 3% per piece - worth reconciling against this file's
+earlier "only 2 real Fenris prefabs confirmed" note, since 9/3 implies
+three pieces; unresolved, check on desktop). Landing the belt's dodge
+number at 10% (below Asksvin's 15%) despite Mountain being 3 tiers
+earlier than Ashlands (Plains and Mistlands both sit between them) was
+judged a defensible ratio, not an overshoot.
+
+**Open questions:**
+- No vanilla item gates an effect on clock time/day-vs-night specifically
+  - confirmed via dedicated research (see cape table below). The closest
+  real analog is Asksvin Cloak's **Wind Run** (0-25% speed + up to -100%
+  run stamina, scaled by facing vs. the live wind vector) - an
+  ambient-world-state gate, just not a time-of-day one. So there's
+  precedent for the *category* (ambient conditions driving an equip
+  bonus, not just player actions), not the specific trigger. The
+  underlying day/night read itself is a real, simple, already-existing
+  vanilla system (`EnvMan`) - the novelty is only in gating an equip
+  effect on it.
+- No cape has a standalone stealth/noise effect in vanilla - the only
+  stealth-adjacent cape effect is the Troll Hide Cape's, and that's
+  gated behind wearing the full 4-piece Troll set (+15 Sneak skill), not
+  a per-item effect. **Need to add: what's the practical mechanical
+  difference between granting flat Sneak-skill points (like the real
+  Troll set does) versus a bespoke noise-radius-reduction effect?**
+  Unclear whether Sneak skill is even the real mechanism behind
+  detection/noise radius, or a separate system entirely - needs
+  decompile access to resolve, don't guess at it.
+- Whether the real Fenris armor set's total is genuinely 3 pieces (see
+  above) is unresolved and affects how directly comparable that 9%
+  figure actually is.
+
+### Needle Cape (Ashlands, recolored Feather Cape)
+
+Grew out of a vaguer "Ashlands mage cloak, maybe fire resist" idea - see
+the monster-resistance research below for why fire-resist-for-survival
+still makes sense even though the mechanic below isn't fire-themed.
+Recolors the real Feather Cape; the benefit is **damage reflected back at
+melee attackers**, as a **percentage of the incoming hit, not a flat
+number** - explicitly chosen so it stays relevant into later biomes
+rather than being trivialized by Ashlands/Deep North damage scaling.
+
+- **Mechanism, low implementation risk**: reuses the exact pattern
+  already proven in `ShieldOfFrostPatches.cs` - build a `HitData` and
+  call `attacker.Damage(hitData)` directly (that file already does this
+  for the frost-on-parry proc). This would read the *incoming* hit's
+  damage, take a percentage of it, and fire it back - just triggered on
+  any incoming melee hit instead of gated to a perfect parry.
+- **No resource cost** - deliberate design call: the cost is the
+  opportunity cost of the cape slot itself (not wearing Lox Cape's frost
+  resist, or Feather Cape's own fall protection, or Asksvin/Ashen's
+  stamina effects instead), not an Eitr/health drain.
+- **Real precedent exists, but only qualitatively**: initially
+  misidentified via item-list categorization as a plain offensive staff,
+  a corrected research pass (prompted by the user's own play experience
+  overriding the wrong first pass - see note on trusting firsthand
+  play-testing over categorization-only research) confirmed
+  **Northern Vengeance** (`StaffFrostOrbs`, Deep North, Blood Magic) is
+  actually a **"Vengeance Sphere"** - a genuine caster-centered
+  reflect/retaliation shield ("should your enemy hurt you, it shall
+  reflect back upon them at once"), costing 100 Eitr + 40% current
+  health per cast (one-time cost, medium confidence, not continuous).
+  **The actual reflect percentage/radius/duration for that real ability
+  was never found** - the wiki pages most likely to have it were
+  proxy-blocked in this environment. So Needle Cape's reflect percentage
+  is an original balance call, not lifted from a confirmed vanilla
+  number, unlike most of this mod's other tuning so far.
+- **Unconfirmed**: whether the incoming `HitData` actually distinguishes
+  melee from ranged/projectile sources (needed to gate this to melee
+  attackers only, per the original design intent) - reasonable to assume
+  it does, not verified. Also unresolved: whether to cap the reflected
+  amount alongside the percentage, to avoid a degenerate huge reflect off
+  a single massive hit (a boss mechanic, say) - deliberately left open,
+  not decided.
+
+### Feather Fall Potion (Mountain, consumable - first mead/potion in this mod)
+
+Reuses the real Feather Cape's exact fall-damage-immunity effect, but as
+a short ~30-second consumable burst rather than permanent equipment -
+explicitly framed as an emergency "pop it right before a specific big
+jump/descent" item, not a pre-buff-and-explore item like vanilla's
+existing resistance meads.
+
+- **This is a deliberate tier/permanence compression**: the real Feather
+  Cape is Mistlands-tier (confirmed, not Mountain), so this potion pulls
+  a later permanent effect down to an earlier, temporary, lower-commitment
+  version - consistent with the mobility-arc framing above (temporary at
+  Mountain, permanent once you reach the real item at Mistlands).
+- **No real vanilla mead uses genuinely Mountain-native materials** -
+  checked all ~21 known real meads/potions/wines, none use Wolf
+  Pelt/Fang, Freeze Gland, Silver, Obsidian, Drake Trophy, etc. Frost
+  Resistance Mead (the mead that gets you *through* Mountain) itself only
+  uses Black Forest/Swamp-tier materials (10 Honey, 5 Thistle, 2 Bloodbag,
+  1 Greydwarf eye, confirmed 2+ sources) - "protect against tier N using
+  materials from tier N-1" is the real vanilla pattern, not an assumption.
+- **Recipe: Feathers + Wolf Pelt + Honey.** Feathers confirmed
+  early/common (crows, hens, gulls; available from Meadows onward, not
+  Mountain-exclusive). Wolf Pelt confirmed a common guaranteed drop (not
+  a rare grind like Drake Trophy, which has a wildly inconsistent
+  real-world reported drop rate around ~15%). Honey is the near-universal
+  real mead filler ingredient, appearing in the large majority of real
+  recipes including Frost Resistance Mead itself.
+- **Real precedent for the general shape**: **Lightfoot Mead** (2 Scale
+  Hide, 5 Feathers, 5 Magecap -> -30% jump stamina, +20% jump height,
+  10 min) already pairs Feathers with a jump/movement effect in a real
+  recipe - confirms "Feathers + jump-related buff" isn't an invented
+  combination.
+- **No real precedent for the ~30-second duration specifically** - every
+  real resistance mead runs 600s (10 min); this mod's much shorter,
+  "emergency item" duration is a genuinely new duration tier, not modeled
+  on an existing mead.
+- Mead Ketill/Fermenter mechanics confirmed: base is made at a Mead
+  Ketill (Forge-adjacent, no station-level gating found - recipes unlock
+  by simply holding ingredients), then fermented ~2 in-game days at a
+  Fermenter (needs a nearby Lv1 Workbench + roof/70% cover) to yield
+  (typically 6) finished potions. This would be the first consumable/mead
+  in the whole mod - everything else so far is equip-slot gear. Mead
+  status effects reuse the same `StatusEffect` system already used for
+  every armor/cape equip effect in this mod, just triggered by
+  consumption instead of equip - not a new subsystem, just a new trigger
+  path.
+
+### Wolf-Pelt Parachute (Mountain, alternative to the potion - not both)
+
+**Explicitly positioned as an "OR" alternative to the Feather Fall
+Potion, not an addition** - per explicit direction, probably one or the
+other, decision deferred. Concept: clone the real boat sail prefab
+(already an animated, proven vanilla asset), reorient it from
+vertical/mast-mounted to horizontal/spread-above-the-player, recolor
+toward a wolf-pelt look, and use it as a Fenris-family "deliberate,
+equipped, triggered descent tool" rather than the potion's "reactive
+emergency" framing. Cords rendered as four `LineRenderer` lines from the
+player to anchor points above them. Materials: Feathers + Wolf Pelt +
+Fenris Hair (again the Fenris material family).
+
+This is the biggest lift in this batch, but meaningfully de-risked by
+reusing a real, already-animated asset instead of authoring new geometry
+- consistent with this mod's whole "clone something real, retune/reflavor
+it" pattern, just applied to a cloth/sail asset instead of a
+weapon/armor/projectile prefab for the first time.
+
+**Everything below needs real desktop/AssetRipper access, not more web
+research** - wikis document gameplay stats, not internal GameObject/
+component structure, so none of this can be resolved remotely:
+- The real sail prefab's exact name(s).
+- Whether the sail's billowing motion is driven by a Unity `Cloth`
+  component reacting to wind + anchor points, or a simpler baked/scripted
+  animation - this materially changes how well reorienting it 90 degrees
+  and reparenting it to a player (instead of a mast/boom rig) will
+  actually behave. Cloth-driven motion might carry over oddly once
+  detached from its original rigging; baked animation would reorient more
+  predictably but wouldn't be genuinely wind-reactive.
+- Whether a real fur/pelt texture exists whose UV mapping could
+  reasonably apply to a sail-shaped mesh. **Managing expectations**: the
+  established `MaterialPropertyBlock` recolor trick (already used for
+  Shield of Frost) will get the right color palette, but a flat tint
+  alone won't add actual fur texture/detail - a sail's cloth material and
+  UVs aren't built to look like pelt, so "the right color" and "visibly
+  furry" are different bars to clear.
+- "Several pelts stitched together" (multiple cloned sail panels instead
+  of one, patchwork look) is a nice v2 idea, not a v1 target - get one
+  panel working and looking right first.
+
+### Shared open question (relevant to 3 different items now)
+
+How the real Feather Cape's fall-damage protection is actually
+implemented at the code level - a hard fall-damage-immunity flag, a
+max-fall-speed cap, or a damage-reduction multiplier - is still
+unconfirmed (already flagged under the Hover Cape idea above), and now
+matters for **three** separate queued items: Hover Cape, Feather Fall
+Potion, and the Wolf-Pelt Parachute. Worth resolving once on desktop
+rather than re-deriving it three times.
+
+### Cape roster research (reference data for the above)
+
+Full real cape/cloak roster, confirmed via the Jötunn item-list plus
+cross-referenced search snippets (many wiki/datamining sites were
+proxy-blocked for direct fetch this session - noted per-row where
+relevant):
+
+| Cape | Tier | Effects | Conditional? |
+|---|---|---|---|
+| Deer Hide | Bronze | None (pure armor) | - |
+| Troll Hide | Bronze | Alone: nothing. Full 4-piece Troll set: +15 Sneak skill | Set-gated |
+| Wolf Fur | Mountain | Frost resistance | Always-on |
+| Lox | Plains | Frost resistance | Always-on |
+| Linen | Pre-Mistlands | None (no frost resist, unlike Lox) | - |
+| Feather | Mistlands | 100% fall damage reduction, frost resist; 2x fire damage taken | Always-on |
+| Ashen Cape | Ashlands | Frost resist, -10% attack stamina, -20% block stamina | Always-on |
+| Asksvin Cloak | Ashlands | Frost resist, -15% dodge stamina, Wind Run (0-25% speed + up to -100% run stamina, wind-facing-scaled) | Wind Run only |
+| Moose Hide | Deep North | Frost resist, -20% attack stamina, -20% run stamina | Always-on |
+| Cape of the Caller | Deep North (mage) | Frost resist, +Eitr regen, -dodge stamina (%s single-source) | Always-on |
+| Cape of Odin | Legacy/supporter DLC, not normal progression | None found besides armor (single-source, low confidence) | - |
+
+(`CapeTest` also exists in the prefab dump but is a dev-only debug item,
+excluded.)
+
+### Ashlands monster fire-resistance research (context for Needle Cape's origin)
+
+Checked whether a fire-offense theme would even work well in Ashlands
+before landing on Needle Cape's reflect mechanic instead. **Confirmed:
+fire generally underperforms against Ashlands' own monster roster** - 7
+of 9 checked enemies resist or are immune to fire, including Bonemaw
+Serpent, Lava Blob, and the boss Fader (all fully immune, not just
+resistant). The Charred faction (all 4 variants) and Fallen Valkyrie
+share a **spirit** weakness instead; Bonemaw and Lava Blob share a
+**frost** weakness; Morgen's outlier weakness is **lightning**. Volture's
+data was genuinely conflicting between sources - left unresolved. One
+roster correction: Growth/Tar Pits are Plains, not Ashlands, despite
+being weak to fire themselves - excluded from the pattern above as a
+biome mismatch. Practical upshot: fire-resistance-for-the-wearer is
+well-justified for an Ashlands item (the biome itself constantly burns
+you), but a fire-*offense* angle would fight the biome's own monster
+roster rather than working with it.

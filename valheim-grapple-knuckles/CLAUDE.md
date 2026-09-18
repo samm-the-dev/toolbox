@@ -1623,3 +1623,108 @@ biome mismatch. Practical upshot: fire-resistance-for-the-wearer is
 well-justified for an Ashlands item (the biome itself constantly burns
 you), but a fire-*offense* angle would fight the biome's own monster
 roster rather than working with it.
+
+## IDEA (not built): Water Walking Potion / "Hydrophobia" (Swamp, consumable)
+
+First idea for the Swamp tier - this mod has nothing there yet. Concept:
+a several-minute (5-10 min under consideration) consumable that lets the
+player walk on water's surface without sinking/swimming, deliberately
+expensive/hard to obtain given how powerful the effect is. Possible
+secondary effect floated: also prevents the wearer from getting the real
+vanilla "Wet" status while active (i.e., water-repellent, not just
+water-walking) - name still undecided, "Hydrophobia" was floated as a
+pun on the secondary effect, or it could just stay "Potion of Water
+Walking."
+
+Explicit framing from ideation: especially useful for the Bonemass fight
+specifically, since the Swamp's terrain/mud is normally a hindrance
+there.
+
+**Confirmed via dedicated research:**
+- **No vanilla water-walking mechanic exists anywhere** - not a mead, not
+  an item effect, not a normal gameplay toggle. The only way to cross
+  water without swimming in vanilla is the `fly` debug/creative console
+  command, which is a dev tool, not an in-game item. Corroborated by the
+  fact that community mods exist specifically to add this
+  (`WaterWalkingPotion`, `EnhancedPotions`) - if it existed in vanilla,
+  those mods wouldn't need to. **This is a genuinely novel mechanic for
+  this mod to build, not an extension of anything real** - similar
+  situation to Needle Cape's reflect percentage, another case where this
+  mod is inventing rather than reusing.
+- **Wraith Trophy** (`TrophyWraith`) is real, dropped by nighttime Swamp
+  Wraiths. Exact drop rate is disputed between sources (33% vs 5%) -
+  don't cite a specific number. **Has no real recipe use in vanilla at
+  all** - this potion would be the first thing that ever consumes it,
+  which fits the "make gross use of an otherwise-decorative material"
+  flavor the ideation wanted.
+- **Ancient Bark** (real prefab name `ElderBark`, display name "Ancient
+  Bark") is real, obtained by chopping Ancient trees in Swamp, confirmed
+  used in Root Armor (10/piece) and the Ancient Bark Spear - solidly
+  real Swamp-tier material.
+- **Blood Bag** reconfirmed real and Swamp-tier (Leech drop, already
+  used in Frost Resistance Mead's real recipe) - but it's a common,
+  guaranteed drop, so it doesn't add much scarcity to a recipe meant to
+  be "hard to get." **Honey may be the better third ingredient instead**
+  - still real effort (bee farming) without diluting the gating the way
+  a trivially common material would. Not decided - Blood Bag remains
+  thematically apt for the "gross" framing (wood pulp + blood + wraith
+  robe wrung out) even if it's not the scarcity-adding ingredient.
+- **Duration precedent**: every real resistance mead (Frost/Poison/Fire)
+  runs exactly 600s (10 min), confirmed 3+ sources. 10 min would match
+  that pattern exactly; 5 min would read as an intentional restriction
+  given the effect's power - both defensible, not decided.
+
+**Not confirmed / needs decompile access:**
+- Whether Swamp's mud/muck slowdown is its own distinct mechanic, or
+  actually the same water-depth/wading-height check reacting to the
+  biome's ubiquitous shallow bog (in which case a water-walking effect
+  would plausibly bypass it "for free," since it'd be the same
+  underlying system) - versus being unrelated entirely (the "Wet" status
+  effect, or flat armor movement penalties). Two competing explanations
+  found, web research can't adjudicate between them. **Design
+  implication: build/promise "walks on water" as the guaranteed effect;
+  treat "also bypasses Bonemass-fight mud" as an untested bonus, not a
+  guaranteed feature**, until verified on desktop.
+
+## IDEA (not built, less certain): early "broken" magic staff (Plains)
+
+Rougher idea, explicitly flagged by the user as less certain than the
+others in this batch. Concept: an early, unreliable magic item for
+Plains - a makeshift/broken staff that fires a weak fireball, inspired by
+a Plains enemy's own fire ability. Since Eitr doesn't exist yet this
+early (confirmed established lore already in this mod - no Eitr items
+exist before Mistlands), the resource cost would be **very low
+durability instead of Eitr** - maybe ~10 shots before it breaks, repaired
+at a deliberately inconvenient station to keep it feeling scavenged/
+unreliable rather than a proper crafted tool. This would be a genuinely
+different resource model than every other elemental item in this mod
+(all Eitr-costed) - durability-as-resource instead.
+
+**Still needs verification (research pass in progress as of this
+writing) - do not build against these specifics yet:**
+- The real enemy name and ability. Valheim's Plains humanoids are called
+  **Fulings**, not "Goblins" (a player nickname) - need to confirm which
+  real Fuling variant (if any) actually has a fire/ranged ability, since
+  "the Shaman one throws fireballs" was the user's recollection, not yet
+  checked.
+- Whether any real player-usable weapon or projectile is tied to that
+  ability at all - enemy special attacks are often AI-only with no
+  lootable/cloneable analog, which would matter a lot for what this item
+  could actually clone from.
+- **Artisan Table's real tier** - suspected (not yet confirmed) to
+  actually be Mistlands-tier building furniture, not something available
+  at Plains. If true, using it as the repair station would create a real
+  tier mismatch (a Plains item you can't repair until Mistlands) that
+  the design would need to address.
+- What the real, appropriate-tier repair/crafting station for Plains
+  gear actually is.
+
+## Open design question (not resolved): Needle Cape's tier
+
+Needle Cape was designed and researched as an **Ashlands** item
+(recolored Feather Cape, checked against Ashlands' own monster
+fire-resistance roster). A later remark suggested moving it to **Plains**
+instead. Not resolved - flagged rather than silently changed, since the
+existing design work (material choices, the fire-resistance research)
+was specifically grounded in Ashlands. Confirm intended tier before
+building.

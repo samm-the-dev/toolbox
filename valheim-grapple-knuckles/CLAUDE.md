@@ -1700,31 +1700,101 @@ unreliable rather than a proper crafted tool. This would be a genuinely
 different resource model than every other elemental item in this mod
 (all Eitr-costed) - durability-as-resource instead.
 
-**Still needs verification (research pass in progress as of this
-writing) - do not build against these specifics yet:**
-- The real enemy name and ability. Valheim's Plains humanoids are called
-  **Fulings**, not "Goblins" (a player nickname) - need to confirm which
-  real Fuling variant (if any) actually has a fire/ranged ability, since
-  "the Shaman one throws fireballs" was the user's recollection, not yet
-  checked.
-- Whether any real player-usable weapon or projectile is tied to that
-  ability at all - enemy special attacks are often AI-only with no
-  lootable/cloneable analog, which would matter a lot for what this item
-  could actually clone from.
-- **Artisan Table's real tier** - suspected (not yet confirmed) to
-  actually be Mistlands-tier building furniture, not something available
-  at Plains. If true, using it as the repair station would create a real
-  tier mismatch (a Plains item you can't repair until Mistlands) that
-  the design would need to address.
-- What the real, appropriate-tier repair/crafting station for Plains
-  gear actually is.
+**Confirmed via dedicated research:**
+- Correct enemy: the **Fuling Shaman** (Valheim's Plains humanoids are
+  called Fulings, not "Goblins" - that's a player nickname). It has a
+  real fireball ability (Burning: 20 blunt + 100 fire, 15 m/s, 4s travel,
+  3s cooldown, 0-20m range) - confirmed real, but it's one of *three*
+  separate abilities the Shaman has (melee staff-jab, the fireball, and a
+  party-shield buff) - "shaman staff that shoots a weak fireball" is a
+  fair simplification of the real kit, not a literal 1:1 copy of a single
+  attack.
+- **No player-equippable weapon/fireball item exists in Jötunn's
+  item-list** for this ability - confirmed by direct fetch. **Important
+  nuance, corrected after pushback**: this only rules out a *player
+  item* already wired into the item registry. It does NOT rule out the
+  enemy-side model (the Shaman's staff mesh) or the fireball's VFX/
+  projectile prefab existing in the raw game files, since enemies still
+  need assets to render their own weapons and spells even without a
+  player-facing item wrapping them. **This is genuinely checkable on
+  desktop with AssetRipper targeting the Fuling Shaman's own prefab
+  specifically (not just the player item-list)** - if the mesh/VFX
+  assets turn out to be accessible and cloneable, this item is a much
+  smaller lift than "fully custom from scratch." Worth checking before
+  assuming the worst case.
+- **Artisan Table is real, but wrong on both the tier and the type of
+  station guessed**: it's actually **Mountain**-tier (unlocked via Dragon
+  Tears, a Moder drop), not Mistlands - but more importantly, **it's a
+  building-unlock station** (Blast Furnace, Spinning Wheel, Windmill,
+  Stone Oven), not a gear repair/crafting station at all. Don't use it
+  regardless of tier - it's the wrong tool, not just the wrong tier.
+- **Real Plains-tier repair/crafting station**: Padded Armor (the real
+  Plains armor set) uses **Forge lvl 1-2**. **Workbench lvl 2** is also
+  real for some Plains gear and might fit the "broken/makeshift" flavor
+  better than a proper Forge would - either is a defensible choice.
+- **The "expensive/hard to repair" mechanic has zero vanilla precedent**:
+  confirmed vanilla repair is always free, for every item, at every
+  station - no material-cost repair gate exists anywhere in the base
+  game to model this on. This piece of the design would be a fully
+  custom mechanic (a Harmony patch intercepting the repair action to
+  impose a cost), not an adaptation of anything real, and has no
+  existing balance reference point to borrow from - would need to be
+  tuned purely by feel. This raises this item's overall complexity closer
+  to the Wolf-Pelt Parachute's than to the rest of this mod's "clone and
+  retune" items.
 
-## Open design question (not resolved): Needle Cape's tier
+## Needle Cape (Plains, recolored Feather Cape mesh - not its stats/recipe)
 
-Needle Cape was designed and researched as an **Ashlands** item
-(recolored Feather Cape, checked against Ashlands' own monster
-fire-resistance roster). A later remark suggested moving it to **Plains**
-instead. Not resolved - flagged rather than silently changed, since the
-existing design work (material choices, the fire-resistance research)
-was specifically grounded in Ashlands. Confirm intended tier before
-building.
+**Resolves the earlier open tier question** - confirmed Plains, not
+Ashlands (the user recalled conflating it with a separate, still-
+undefined "Ashlands cape" idea - see below). Thematically tied to
+Deathsquitos. Benefit: reflects a percentage of incoming melee damage
+back at attackers (see the original design entry above for the full
+mechanism/precedent discussion - unchanged, only the tier moved).
+
+- **Materials, confirmed real**: **Needle** (~20 of them - a lot,
+  deliberately, both to justify "covered in needles" visually and to
+  gate the recipe) + **Tar** + **Lox Pelt**. Needle is dropped by
+  Deathsquitos at a **guaranteed 100% rate** - Deathsquitos also die in
+  one hit to nearly anything, so "~20 Needles" is grindy in the
+  "go find 20 of them" sense, not RNG-punishing. Tar and Lox Pelt are
+  both confirmed real Plains materials, Lox Pelt a common/guaranteed
+  drop. **No existing real recipe combines all three** - this is a novel
+  pairing, fine for a custom item, just not leaning on an established
+  recipe pattern. Needle's only other real use: Needle Arrow (4 Needle +
+  2 Feathers, Workbench lvl 4).
+- **Important correction - do not clone Feather Cape's stats/recipe**:
+  the real Feather Cape is **Mistlands-tier** (Galdr Table, 10 Feathers +
+  5 Scale Hide + 20 Refined Eitr - both Scale Hide and Refined Eitr are
+  Mistlands-only materials), not Plains. "Reskinned Feather Cape" only
+  works as a **visual/mesh starting point** - the recipe and station
+  need to be built fresh at Plains-tier values (Forge or Workbench, both
+  confirmed real for Plains gear), not inherited from the real item.
+- Station: Forge or Workbench, both real options at Plains tier - not
+  yet decided which.
+
+## Open thread (not detailed yet): a separate Ashlands cape idea
+
+Distinct from Needle Cape - the user recalled wanting to add a cape to
+Ashlands too, separately, but the two ideas got tangled together in
+conversation and only Needle Cape (now confirmed Plains) came out with
+real design details. This Ashlands cape concept is still completely
+undefined - don't invent a mechanic for it, revisit when there's an
+actual idea to attach to it.
+
+## Gap check: Plains has no mobility item yet
+
+Every other tier now has at least one mobility-flavored item in this
+mod's design set: Swamp (Water Walking Potion), Mountain (Fenris Belt +
+Feather Fall Potion/Parachute), Mistlands (covered by the real vanilla
+Grappling Hook + Feather Cape), Ashlands (Grapple Knuckles), Deep North
+(the Hover Cape idea). Plains currently only has Needle Cape (defense)
+and the Shaman Staff idea (offense) - no mobility item. Flagged per
+explicit request, not yet resolved with a concrete idea.
+
+Note: Needle Cape's original design entry (further up this file, under
+"IDEAS (not built): a Mountain-tier mobility pair, and two Ashlands
+cloaks") still describes the reflect mechanism/Northern Vengeance
+research and predates the Plains re-tier - the tier and materials
+sections above supersede that entry's Ashlands framing, the mechanism
+discussion there is still accurate.

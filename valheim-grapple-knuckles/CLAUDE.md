@@ -1846,7 +1846,7 @@ Station not yet decided - both real Ashlands capes provide precedent for
 either choice (Ashen Cape: Black Forge Lv3; Asksvin Cloak: Galdr Table
 Lv2).
 
-## IDEA (not built, materials/mechanics still being verified): Asksvin Belt (Ashlands)
+## IDEA (not built): Asksvin Belt (Ashlands) - lava immunity + anti-ignition
 
 Grew directly out of a real solo Ashlands-boss playthrough (with troll
 summons, so "solo" loosely) - the user found the fight's lava terrain and
@@ -1855,25 +1855,64 @@ specifically, "strong but boxed into that biome" by design (a
 deliberately powerful, narrowly-scoped item rather than a broadly
 progression-breaking one).
 
-Concept: materials Asksvin Hide + Flametal + possibly Celestial Feather +
-one more undecided rare material. Two effects: (1) lava
-immunity/no-lava-damage, modeled on the belief that Asksvin creatures
-themselves are immune to lava - **not yet verified, do not assume true**;
-(2) prevents the player from catching fire (the Burning status
-specifically) without reducing direct fire damage taken - explicit design
-intent that Fire Resistance Barley Wine would still be worth carrying for
-the raw damage reduction, this item only stops ignition, giving it real
-but bounded power. Research in progress on: whether Asksvin are actually
-lava-immune, whether lava damage is mechanically distinct from the fire
-damage type or just an extreme case of it (determines whether "lava
-immunity" needs a wholly custom mechanic or can reuse something),
-whether "Burning" is a real separable status effect from a direct fire
-damage hit (some evidence already found via the Fuling Shaman research:
-its fireball is described as "Burning: 20 blunt + 100 fire dmg," which
-at least suggests Burning is named/tracked as distinct from the instant
-hit), whether Celestial Feather is real, and what damage type Lava
-Blobs' death explosions actually deal (the user wasn't sure themselves -
-suspects fire + blunt).
+Concept: materials Asksvin Hide + Flametal + Celestial Feather + one more
+still-undecided rare material (no vanilla lead to chase for a fourth
+ingredient - this slot is pure invention either way). Two effects: (1)
+lava immunity/no-lava-damage, (2) prevents the player from catching fire
+(the Burning status specifically) without reducing direct fire damage
+taken.
+
+**Both mechanics confirmed well-grounded via dedicated research:**
+
+- **Asksvin really are lava-immune** (confirmed, 2+ sources) - take zero
+  damage from lava contact, but are explicitly NOT generally fire-immune
+  (still take damage from the Fire damage type, e.g. fireballs). This is
+  a genuine creature-specific trait, not a byproduct of some broader
+  resistance. **Real precedent for exactly this transfer already
+  exists**: mounting a tamed Asksvin extends its lava immunity to the
+  rider - this belt would be doing the same transfer via gear instead of
+  a mount, not inventing a new category of ability. Unconfirmed:
+  whether the real mount version is a true damage-immunity flag or just
+  positional (the mount's height keeping the rider out of lava contact) -
+  doesn't change how to build the belt version, just noted.
+- **Lava is confirmed mechanically separate from the Fire damage type** -
+  described as "true damage" that bypasses normal resistances. Vanilla
+  does have a second, narrower real stat for this specifically: Flametal
+  Armor's **"Heat Resistance"** (40% total, distinct from "Fire
+  Resistance") reduces lava damage but not Fire-type hits or Burning.
+  Worth knowing this split already exists in-game as a percentage-based
+  option, though **full immunity (matching Asksvin's own real ability)
+  is the better thematic fit** for what was described here, not a
+  partial Heat Resistance percentage.
+- **Burning confirmed as a real, separate DoT status effect** (2+
+  sources) - ticks 5s as "Pure" damage (ignores armor/resistance once
+  applied), and is *triggered by* taking Fire damage rather than being
+  the same thing as the instant hit. Fire Resistance Mead reduces the
+  initial Fire-damage hit (and thus the Burning tick's math) but does
+  **not** prevent Burning from being applied in the first place, and
+  doesn't affect it once ticking. **This confirms the core design intent
+  holds exactly as wanted**: nothing in vanilla currently blocks Burning
+  application while leaving direct Fire damage untouched, so this really
+  would leave Fire Resistance Mead just as relevant as intended, not
+  redundant with the belt. Genuinely novel mechanic, not an extension of
+  anything real - worth knowing going in, same caveat category as the
+  Needle Cape's reflect percentage and the Water Walking Potion.
+- Confirms the Fuling Shaman fireball's real numbers from the earlier
+  Shaman Staff research: 20 Blunt + 100 Fire on impact, which separately
+  applies Burning afterward - exact match to what was found there.
+- **Celestial Feather confirmed real** - used in the real Feathery Wreath
+  (Galdr Table's Lv4 upgrade: 8 Celestial Feathers + 1 Asksvin Trophy +
+  10 Refined Eitr + 3 Ashwood), sourced from Fallen Valkyries (2-3/kill)
+  or Charred Chests.
+- **Lava Blob's death explosion confirmed**: 70 Blunt + 30 Fire, 6m
+  radius (plus harvest-only Chop/Pickaxe components that don't affect
+  the player) - matches the user's own recollection of a blunt+fire mix.
+- Also confirmed, lower relevance: vanilla has a formal "Immune" fire
+  tier (0x damage) used by several creatures, but no player-obtainable
+  gear currently grants it - only the weaker "Resistant" tier (0.5x, via
+  mead) exists for players. Not directly useful here since full fire
+  immunity would overshoot the explicit design goal (still wanting Fire
+  Resistance Mead to matter), noted for completeness only.
 
 ## Gap check: Plains probably doesn't need a mobility item
 

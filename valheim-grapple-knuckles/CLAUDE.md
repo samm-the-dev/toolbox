@@ -1476,13 +1476,31 @@ rather than being trivialized by Ashlands/Deep North damage scaling.
   proxy-blocked in this environment. So Needle Cape's reflect percentage
   is an original balance call, not lifted from a confirmed vanilla
   number, unlike most of this mod's other tuning so far.
-- **Unconfirmed**: whether the incoming `HitData` actually distinguishes
-  melee from ranged/projectile sources (needed to gate this to melee
-  attackers only, per the original design intent) - reasonable to assume
-  it does, not verified. Also unresolved: whether to cap the reflected
-  amount alongside the percentage, to avoid a degenerate huge reflect off
-  a single massive hit (a boss mechanic, say) - deliberately left open,
-  not decided.
+- **Resolved via dedicated research**: `HitData` does have a real field
+  for this, `m_hitType` (`HitData.HitType`), confirmed with real values
+  including `Boat` and `Drowning` alongside whatever melee weapons set.
+  This came up while investigating vanilla's ship-ramming mechanic (which
+  turned out to be genuinely relevant): confirmed real, and it runs
+  through the **exact same `HitData`/`Character.Damage(HitData)` pipeline**
+  as melee combat, via a generic, reusable `ImpactEffect` component
+  (attached to ship hulls, falling trees/logs, carts, etc. - not
+  implemented in `Ship.cs` itself) that builds a `HitData` and calls
+  `.Damage(hitData)` on collision. Confirmed via decompile
+  (`davrum/assembly_valheim`'s `ImpactEffect.cs`/`Ship.cs`) plus real
+  shipped mods (`zolantris/ValheimMods`, `blaxxun-boop/Lumberjacking`,
+  `blaxxun-boop/DarwinAwards`) patching this exact
+  component/`Character.Damage` pair for the same reason.
+  **Practical implication, important gotcha**: since ship rams, falling
+  logs, and carts all funnel through the same pipeline Needle Cape's
+  reflect would hook, a broadly-scoped patch (anything reacting generally
+  to "the wearer took damage") would also fire on those non-melee
+  physics impacts, not just weapon swings. **Fix: check `HitData.m_hitType`
+  to confirm the hit actually came from a melee weapon before reflecting**,
+  not just that damage occurred - the field exists and is exactly the
+  right thing to gate on, this is no longer an open question.
+- Still unresolved: whether to cap the reflected amount alongside the
+  percentage, to avoid a degenerate huge reflect off a single massive hit
+  (a boss mechanic, say) - deliberately left open, not decided.
 
 ### Feather Fall Potion (Mountain, consumable - first mead/potion in this mod)
 

@@ -1773,24 +1773,127 @@ mechanism/precedent discussion - unchanged, only the tier moved).
 - Station: Forge or Workbench, both real options at Plains tier - not
   yet decided which.
 
-## Open thread (not detailed yet): a separate Ashlands cape idea
+## DECISION: Grapple Knuckles re-tiered from Ashlands to Deep North
 
-Distinct from Needle Cape - the user recalled wanting to add a cape to
-Ashlands too, separately, but the two ideas got tangled together in
-conversation and only Needle Cape (now confirmed Plains) came out with
-real design details. This Ashlands cape concept is still completely
-undefined - don't invent a mechanic for it, revisit when there's an
-actual idea to attach to it.
+Per explicit direction from a live desktop session (not yet reflected in
+this repo's code as of this writing - check `GrappleKnucklesPlugin.cs`
+against this before assuming it's already done): Grapple Knuckles moves
+from Ashlands to **Deep North**, and should now use the **real `FistGold`
+directly as the base item** (not just as a model/mechanics clone source
+with a substitute recipe, the way the Ashlands version was designed) -
+reasoning being a two-tier jump (Mistlands hook -> Deep North knuckles)
+reads as a more significant, satisfying upgrade than a one-tier jump
+would. **This means Ashlands currently has zero mod items** - update any
+assumption elsewhere in this file that Grapple Knuckles still fills
+Ashlands' gap.
 
-## Gap check: Plains has no mobility item yet
+## Two Ashlands capes: Elemental Magic and Blood Magic variants
 
-Every other tier now has at least one mobility-flavored item in this
-mod's design set: Swamp (Water Walking Potion), Mountain (Fenris Belt +
-Feather Fall Potion/Parachute), Mistlands (covered by the real vanilla
-Grappling Hook + Feather Cape), Ashlands (Grapple Knuckles), Deep North
-(the Hover Cape idea). Plains currently only has Needle Cape (defense)
-and the Shaman Staff idea (offense) - no mobility item. Flagged per
-explicit request, not yet resolved with a concrete idea.
+Fills the Ashlands gap left by Grapple Knuckles' move to Deep North.
+Both real Ashlands capes (Ashen Cape, Asksvin Cloak - see the roster
+table earlier in this file) already cover stamina economy and movement;
+neither touches Eitr regen or magic skill, which is the gap these two
+custom capes are designed to fill instead of duplicating what's real.
+
+**Shared design, both capes:**
+- Materials: **Asksvin Hide + Morgen Sinew** (same material family the
+  two real Ashlands capes already use) + one gem, differing per variant.
+- **Eitr regen, deliberately less than the real Deep North "Cape of the
+  Caller"** - not a hard number yet, just a design intent to keep Deep
+  North's own mage cape feeling like a genuine upgrade rather than being
+  outclassed by an earlier-tier item.
+- **+15 to the relevant magic skill** - confirmed via dedicated research
+  as the actual real vanilla convention for this exact mechanic (Troll
+  Hide Cape's +15 Sneak, Fenris armor's +15 **Fists** - not "Unarmed",
+  corrected via research - and a third confirmed precedent, Root Armor's
+  +15 Bows; all three cap at 100). No vanilla item targets Elemental
+  Magic or Blood Magic specifically with this mechanic, so applying it to
+  these two skills is a new combination, not an existing pattern
+  extended - but the magnitude (+15) is well-grounded, not invented.
+- **Design rationale for why you'd pick this over just rushing to Deep
+  North's stronger regen-only cape**: a flat skill bonus isn't just "more
+  frequent casts" - both Elemental Magic and Blood Magic's real mechanics
+  (confirmed earlier in this project's research) scale with skill level
+  beyond just cast frequency (Blood Magic's health-cost percentage,
+  Elemental Magic's output), so a skill bump plausibly makes each cast
+  better AND cheaper, not just more frequent. This resolves a "pretty
+  thin trade" concern raised during design - worth re-verifying this
+  scaling claim still holds before leaning on it too hard.
+
+**Elemental Magic variant**: gem = **Iolite** (real Ashlands material,
+drops from Charred chests in Charred Fortresses - confirmed real, but
+note it's normally a melee-weapon lightning enchant material in vanilla,
+e.g. Nidhögg the Thundering, with **no real connection to the Elemental
+Magic skill** - using it here is flavor/thematic, not a mechanically
+grounded borrow from an existing system).
+
+**Blood Magic variant**: gem = **Bloodstone** (`GemstoneRed`) - NOT
+"Blood Gem," which does not exist as a real item (confirmed, checked
+directly). Bloodstone is real and already used elsewhere in this mod
+(Dundr), but like Iolite it's normally a weapon-damage enchant material
+(scales with the *wielder's own missing HP*) with no real tie to the
+Blood Magic skill - same flavor-only caveat applies.
+
+**A third "maybe" idea, explicitly lower priority, not fully committed**:
+a Jade-gemmed cape granting poison resistance (useful against Deep
+North's lingering poison threats, though not a hard one to deal with
+otherwise per the user's own framing). **Confirmed no real vanilla
+precedent supports this** - Jade adds poison *damage* to weapons, actual
+poison resistance only comes from the real Poison Resistance Mead. Not
+dropped, just flagged as weaker-grounded than the other two.
+
+Station not yet decided - both real Ashlands capes provide precedent for
+either choice (Ashen Cape: Black Forge Lv3; Asksvin Cloak: Galdr Table
+Lv2).
+
+## IDEA (not built, materials/mechanics still being verified): Asksvin Belt (Ashlands)
+
+Grew directly out of a real solo Ashlands-boss playthrough (with troll
+summons, so "solo" loosely) - the user found the fight's lava terrain and
+fire AoEs genuinely hazardous and wants a belt-slot item addressing that
+specifically, "strong but boxed into that biome" by design (a
+deliberately powerful, narrowly-scoped item rather than a broadly
+progression-breaking one).
+
+Concept: materials Asksvin Hide + Flametal + possibly Celestial Feather +
+one more undecided rare material. Two effects: (1) lava
+immunity/no-lava-damage, modeled on the belief that Asksvin creatures
+themselves are immune to lava - **not yet verified, do not assume true**;
+(2) prevents the player from catching fire (the Burning status
+specifically) without reducing direct fire damage taken - explicit design
+intent that Fire Resistance Barley Wine would still be worth carrying for
+the raw damage reduction, this item only stops ignition, giving it real
+but bounded power. Research in progress on: whether Asksvin are actually
+lava-immune, whether lava damage is mechanically distinct from the fire
+damage type or just an extreme case of it (determines whether "lava
+immunity" needs a wholly custom mechanic or can reuse something),
+whether "Burning" is a real separable status effect from a direct fire
+damage hit (some evidence already found via the Fuling Shaman research:
+its fireball is described as "Burning: 20 blunt + 100 fire dmg," which
+at least suggests Burning is named/tracked as distinct from the instant
+hit), whether Celestial Feather is real, and what damage type Lava
+Blobs' death explosions actually deal (the user wasn't sure themselves -
+suspects fire + blunt).
+
+## Gap check: Plains probably doesn't need a mobility item
+
+Revisited per explicit direction - initially flagged as a gap (every
+other tier has at least one mobility item: Swamp's Water Walking Potion,
+Mountain's Fenris Belt + Feather Fall Potion/Parachute, Mistlands' real
+vanilla Grappling Hook + Feather Cape, Deep North's Hover Cape idea and
+now Grapple Knuckles itself per the re-tier above), but **reasoned
+through and likely not needed**: Fenris Belt (Mountain-tier, not
+biome-gated) already carries forward usefully into Plains, and Plains'
+terrain isn't especially hard to traverse compared to Mountain or
+Ashlands. A "hard to get fire resist cape" alternative was floated but
+explicitly set aside - it would undercut the real Fire Resistance Barley
+Wine's usefulness (consumable potion pressure) without a clean way to
+gate it specifically to "just before the boss fight" (**confirmed no
+real vanilla precedent exists for gating an item's availability to
+proximity-to-a-specific-boss within a single biome** - the real pattern
+is always cross-tier, needing the *previous* boss's material to progress,
+not an in-biome "you're close" gate). Left as: Plains likely doesn't need
+a dedicated mobility item, not an unresolved gap.
 
 Note: Needle Cape's original design entry (further up this file, under
 "IDEAS (not built): a Mountain-tier mobility pair, and two Ashlands
